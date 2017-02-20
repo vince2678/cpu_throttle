@@ -16,18 +16,20 @@
 #define CT_HWMON_DIR "/sys/devices/platform/coretemp.0/hwmon/hwmon%d/%s"
 #define SCALING_DIR "/sys/devices/system/cpu/cpu%d/cpufreq/%s"
 
-#define LOG_FILE "/var/log/cpu_throttler.log"
-
 #define C_TO_MS(x) (x*1000)
 #define MS_TO_US(x) (x*1000)
 #define MHZ_TO_KHZ(x) (x*1000)
 
-#define LOGE(...) fprintf(log_file, __VA_ARGS__)
+#define LOGE(...) fprintf(log_file, "[%d] E: " __VA_ARGS__)
+#define LOGI(...) fprintf(log_file, "[%d] I: " __VA_ARGS__)
+#define LOGW(...) fprintf(log_file, "[%d] W: " __VA_ARGS__)
 
 /* SOME GLOBAL VARIABLES */
 
 FILE * log_file;
+char log_path[MAX_BUF];
 
+int LOGGING;
 /* the numbers of the hwmon nodes.*/
 int CT_HWMON_NODE;
 int FAN_CTRL_HWMON_NODE;
@@ -66,7 +68,7 @@ int read_integer(const char* filename) {
 	/* open the file */
 	if (!(file = fopen(filename, "rw"))) {
 		perror("open");
-		LOGE("[%d] %s\n", getpid(), strerror(errno));
+		LOGE("%s\n", getpid(), strerror(errno));
 		return -1;
 	}
 	/* read the value from the file */
@@ -91,7 +93,7 @@ int write_integer(const char* filename, int value)
 	/* open the file */
 	if ((fd = open(filename, O_RDWR)) == -1) {
 		perror("open");
-		LOGE("[%d] %s\n", getpid(), strerror(errno));
+		LOGE("%s\n", getpid(), strerror(errno));
 		return -1;
 	}
 	/* write the string to the file */
@@ -108,7 +110,7 @@ int write_string(const char* filename, const char* out_str)
 	/* open the file */
 	if ((fd = open(filename, O_RDWR)) == -1) {
 		perror("open");
-		LOGE("[%d] %s\n", getpid(), strerror(errno));
+		LOGE("%s\n", getpid(), strerror(errno));
 		return -1;
 	}
 	/* write the string to the file */
@@ -169,6 +171,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 		{"freq",	required_argument,       0, 'f' },
 		{"step",	required_argument,       0, 's' },
 		{"temp",	required_argument,       0, 't' },
+		{"log",	required_argument,       0, 'l' },
 		{"threading",	no_argument,       0, 'v' },
 		{"cores",	no_argument,       0, 'c' },
 		{"help",	no_argument,       0, 'h' },
@@ -176,7 +179,6 @@ void parse_commmand_line(int argc, char *argv[]) {
 	};
 
 	/* set sane defaults for everything */
-	LOGE("[%d] Setting default throttling parameters...\n", getpid());
 	POLLING_INTERVAL_US = MS_TO_US(75);
 	SCALING_TARGET_FREQ = MHZ_TO_KHZ(2400);
 	SCALING_STEP = MHZ_TO_KHZ(100);
@@ -184,8 +186,12 @@ void parse_commmand_line(int argc, char *argv[]) {
 	HT_AVAILABLE = 0;
 	NUM_CORES = 1;
 
+	/* disable logging by default */
+	LOGGING = 0;
+	log_file = stderr;
+
 	/* read in the command line args if anything was passed */
-	while ( (opt = getopt_long (argc, argv, "i:f:s:c:t:hv", long_options, &optind)) != -1 ) {
+	while ( (opt = getopt_long (argc, argv, "i:f:s:c:t:l:hv", long_options, &optind)) != -1 ) {
 		switch (opt) {
 		    case 'i':
 			POLLING_INTERVAL_US=MS_TO_US(atoi(optarg));
@@ -198,6 +204,10 @@ void parse_commmand_line(int argc, char *argv[]) {
 			break;
 		    case 't':
 			CPU_TARGET_TEMP=C_TO_MS(atoi(optarg));
+			break;
+		    case 'l':
+			strncpy(log_path, optarg, MAX_BUF);
+			LOGGING = 1;
 			break;
 		    case 'v':
 			HT_AVAILABLE = 1;
@@ -216,6 +226,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "  -t, --temp\tTarget temperature, in degrees. \n" );
 			fprintf (stderr, "  -v, --threading\tWhether threading is available or not. \n" );
 			fprintf (stderr, "  -c, --cores\tnumber of (physical) cores on the system\n" );
+			fprintf (stderr, "  -l, --log\tPath to log file\n" );
 			fprintf (stderr, "  -h, --help\tprint this message\n");
 			exit (EXIT_FAILURE);
 		}
@@ -224,15 +235,20 @@ void parse_commmand_line(int argc, char *argv[]) {
 
 int main(int argc, char *argv[])
 {
-	/* set up the global variables */
-	
+	/* parse the command line */
+	parse_commmand_line(argc, argv);
+
 	/* open the log file */
-	if (!(log_file = fopen(LOG_FILE, "a+"))) {
-		perror("fopen");
-		fprintf(stderr, "Could not open log file\n");
-		exit(EXIT_FAILURE);
+	if (LOGGING == 1) {
+		if (!(log_file = fopen(log_path, "a+"))) {
+			perror("fopen");
+			fprintf(stderr, "Could not open log file\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 
+	LOGI("Firing up...\n", getpid());
+	LOGI("Setting default throttling parameters...\n", getpid());
 	// initialise the hwmon global variables
 	CT_HWMON_NODE = -1;
 	FAN_CTRL_HWMON_NODE = -1;
@@ -253,7 +269,7 @@ int main(int argc, char *argv[])
 		if (stat(filename, &stat_buf) != -1) {
 			// we found the node
 			CT_HWMON_NODE = i;
-			LOGE("[%d] Found cpufreq hwmon node\n", getpid());
+			LOGI("Found cpufreq hwmon node at %d.\n", getpid(), i);
 		}
 
 		// format the filename
@@ -263,7 +279,7 @@ int main(int argc, char *argv[])
 		if (stat(filename, &stat_buf) != -1) {
 			// we found the node
 			FAN_CTRL_HWMON_NODE = i;
-			LOGE("[%d] Found asus fan-control hwmon node\n", getpid());
+			LOGI("Found Asus fan-control hwmon node at %d.\n", getpid(), i);
 
 			/* set the fan speeds */
 			FAN_MAX_SPEED = 255;
@@ -271,11 +287,11 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (CT_HWMON_NODE == -1) {
-		fprintf(stderr, "Could not find core control hwmon directory.\n");
+		LOGE("Could not find core control hwmon directory.\n", getpid());
 		exit(EXIT_FAILURE);
 	}
 	if (FAN_CTRL_HWMON_NODE == -1) {
-		LOGE("[%d] Could not find fan control hwmon directory. Working without it.\n", getpid());
+		LOGW("Could not find fan control hwmon directory. Working without it.\n", getpid());
 	}
 	else {
 		for (i = 0; i < max_tries; i++) {
@@ -289,7 +305,7 @@ int main(int argc, char *argv[])
 			if (stat(filename, &stat_buf) != -1) {
 				// we found the node
 				FAN_CTRL_HWMON_NODE = i;
-				LOGE("[%d] Found asus fan-control sysfs interface.\n", getpid());
+				LOGI("Found asus fan-control sysfs interface.\n", getpid());
 				// set the fan control global variable.
 				FAN_CTRL_HWMON_SUBNODE = i;
 			}
@@ -303,12 +319,13 @@ int main(int argc, char *argv[])
 	CPUINFO_MAX_FREQ = read_integer(filename);
 
 	if ((CPUINFO_MIN_FREQ == -1) || (CPUINFO_MIN_FREQ == -1)) {
-		LOGE("[%d] Could not read cpu scaling limits.\n", getpid());
+		LOGE("Could not read cpu scaling limits.\n", getpid());
 		exit(EXIT_FAILURE);
 	}
 	else {
-		LOGE("[%d] Successfully read scaling limits. ", getpid());
-		LOGE(" max_freq: %d\t min_freq: %d\n", CPUINFO_MAX_FREQ, CPUINFO_MIN_FREQ);
+		LOGI("Successfully read cpu scaling limits. "
+			       	" max_freq: %d\t min_freq: %d\n", getpid(),
+				CPUINFO_MAX_FREQ, CPUINFO_MIN_FREQ);
 	}
 
 	// make sure an illegal target frequency wasn't specified.
