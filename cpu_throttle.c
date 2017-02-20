@@ -304,8 +304,7 @@ int main(int argc, char *argv[])
 			// stat the file
 			if (stat(filename, &stat_buf) != -1) {
 				// we found the node
-				FAN_CTRL_HWMON_NODE = i;
-				LOGI("\tFound asus fan-control sysfs interface.\n", getpid());
+				LOGI("\tFound asus fan-control sysfs interface at node %d.\n", getpid(), i);
 				// set the fan control global variable.
 				FAN_CTRL_HWMON_SUBNODE = i;
 			}
@@ -323,8 +322,8 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	else {
-		LOGI("\tSuccessfully read cpu scaling limits. "
-			" max_freq: %d KHz\t min_freq: %d KHz\n", getpid(),
+		LOGI("\tSuccessfully read cpu scaling limits.\n"
+			"\t\tmax_freq: %d KHz\t min_freq: %d KHz\n", getpid(),
 				CPUINFO_MAX_FREQ, CPUINFO_MIN_FREQ);
 	}
 
@@ -338,4 +337,8 @@ int main(int argc, char *argv[])
 	LOGI("\tSet cpu target temperature to %d mC.\n", getpid(), CPU_TARGET_TEMP);
 	LOGI("\tSet cpus to throttle to %d.\n", getpid(), NUM_CORES * (HT_AVAILABLE+1));
 	LOGI("Done reading/setting throttling parameters.\n", getpid());
+
+	/* start the scaling/throttling threads */
+	LOGI("Starting throttling threads...\n", getpid());
+
 }
