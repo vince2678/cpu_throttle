@@ -52,7 +52,9 @@ int FAN_MAX_SPEED;
 /* maximum we are allowed to scale to */
 int SCALING_TARGET_FREQ;
 /* Scaling step in Khz. Amount by which we scale after every interval */
-int SCALING_STEP;
+int CPU_SCALING_STEP;
+/* Scaling step for the fan. Amount by which we scale after every interval */
+int FAN_STEP;
 /* how long we wait before reading sysfs files again in uS */
 int POLLING_INTERVAL_US;
 
@@ -181,8 +183,9 @@ void parse_commmand_line(int argc, char *argv[]) {
 	/* set sane defaults for everything */
 	POLLING_INTERVAL_US = MS_TO_US(75);
 	SCALING_TARGET_FREQ = MHZ_TO_KHZ(2400);
-	SCALING_STEP = MHZ_TO_KHZ(100);
+	CPU_SCALING_STEP = MHZ_TO_KHZ(100);
 	CPU_TARGET_TEMP = C_TO_MC(67);
+	FAN_STEP = 10;
 	HT_AVAILABLE = 0;
 	NUM_CORES = 1;
 
@@ -200,7 +203,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			SCALING_TARGET_FREQ=MHZ_TO_KHZ(atoi(optarg));
 			break;
 		    case 's':
-			SCALING_STEP=MHZ_TO_KHZ(atoi(optarg));
+			CPU_SCALING_STEP=MHZ_TO_KHZ(atoi(optarg));
 			break;
 		    case 't':
 			CPU_TARGET_TEMP=C_TO_MC(atoi(optarg));
@@ -258,6 +261,7 @@ int main(int argc, char *argv[])
 	// buffer to store stats on the dir
 	struct stat stat_buf;
 	char filename[MAX_BUF];
+
 	int i = 0, max_tries = 10;
 
 	/* find the hwmon node for the core control */
@@ -280,10 +284,6 @@ int main(int argc, char *argv[])
 			// we found the node
 			FAN_CTRL_HWMON_NODE = i;
 			LOGI("\tFound Asus fan-control hwmon node at %d.\n", getpid(), i);
-
-			/* set the fan speeds */
-			FAN_MAX_SPEED = 255;
-			FAN_MIN_SPEED = 10;
 		}
 	}
 	if (CT_HWMON_NODE == -1) {
@@ -317,6 +317,17 @@ int main(int argc, char *argv[])
 	sprintf(filename, SCALING_DIR, 0, "cpuinfo_max_freq");
 	CPUINFO_MAX_FREQ = read_integer(filename);
 
+	/* set the fan speeds */
+	if (FAN_CTRL_HWMON_SUBNODE != -1) {
+		char general_buf[MAX_BUF];
+		sprintf(general_buf, "fan%d_speed_max", FAN_CTRL_HWMON_SUBNODE);
+		sprintf(filename, FAN_CTRL_DIR, FAN_CTRL_HWMON_NODE, general_buf);
+		FAN_MAX_SPEED = read_integer(filename);
+		sprintf(general_buf, "fan%d_min", FAN_CTRL_HWMON_SUBNODE);
+		sprintf(filename, FAN_CTRL_DIR, FAN_CTRL_HWMON_NODE, general_buf);
+		FAN_MIN_SPEED = read_integer(filename);
+	}
+
 	if ((CPUINFO_MIN_FREQ == -1) || (CPUINFO_MIN_FREQ == -1)) {
 		LOGE("\tCould not read cpu scaling limits.\n", getpid());
 		exit(EXIT_FAILURE);
@@ -333,9 +344,15 @@ int main(int argc, char *argv[])
 	/* print some information about the values we set */
 	LOGI("\tSet polling interval to %d us.\n", getpid(), POLLING_INTERVAL_US);
 	LOGI("\tSet scaling target freq to %d KHz.\n", getpid(), SCALING_TARGET_FREQ);
-	LOGI("\tSet scaling step to %d KHz.\n", getpid(), SCALING_STEP);
+	LOGI("\tSet cpu scaling step to %d KHz.\n", getpid(), CPU_SCALING_STEP);
 	LOGI("\tSet cpu target temperature to %d mC.\n", getpid(), CPU_TARGET_TEMP);
 	LOGI("\tSet cpus to throttle to %d.\n", getpid(), NUM_CORES * (HT_AVAILABLE+1));
+	if (FAN_CTRL_HWMON_SUBNODE != -1) {
+		LOGI("\tSet fan scaling step to %d.\n", getpid(), FAN_STEP);
+		LOGI("\tSuccessfully read fan speed limits.\n"
+			"\t\tspeed_max: %d\t speed_min: %d\n", getpid(),
+				FAN_MAX_SPEED, FAN_MIN_SPEED);
+	}
 	LOGI("Done reading/setting throttling parameters.\n", getpid());
 
 	/* start the scaling/throttling threads */
