@@ -16,7 +16,7 @@
 #define CT_HWMON_DIR "/sys/devices/platform/coretemp.0/hwmon/hwmon%d/%s"
 #define SCALING_DIR "/sys/devices/system/cpu/cpu%d/cpufreq/%s"
 
-#define C_TO_MS(x) (x*1000)
+#define C_TO_MC(x) (x*1000)
 #define MS_TO_US(x) (x*1000)
 #define MHZ_TO_KHZ(x) (x*1000)
 
@@ -182,7 +182,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 	POLLING_INTERVAL_US = MS_TO_US(75);
 	SCALING_TARGET_FREQ = MHZ_TO_KHZ(2400);
 	SCALING_STEP = MHZ_TO_KHZ(100);
-	CPU_TARGET_TEMP = C_TO_MS(67);
+	CPU_TARGET_TEMP = C_TO_MC(67);
 	HT_AVAILABLE = 0;
 	NUM_CORES = 1;
 
@@ -203,7 +203,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			SCALING_STEP=MHZ_TO_KHZ(atoi(optarg));
 			break;
 		    case 't':
-			CPU_TARGET_TEMP=C_TO_MS(atoi(optarg));
+			CPU_TARGET_TEMP=C_TO_MC(atoi(optarg));
 			break;
 		    case 'l':
 			strncpy(log_path, optarg, MAX_BUF);
@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
 	}
 
 	LOGI("Firing up...\n", getpid());
-	LOGI("Setting default throttling parameters...\n", getpid());
+	LOGI("Setting throttling parameters...\n", getpid());
 	// initialise the hwmon global variables
 	CT_HWMON_NODE = -1;
 	FAN_CTRL_HWMON_NODE = -1;
@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
 		if (stat(filename, &stat_buf) != -1) {
 			// we found the node
 			CT_HWMON_NODE = i;
-			LOGI("Found cpufreq hwmon node at %d.\n", getpid(), i);
+			LOGI("\tFound cpufreq hwmon node at %d.\n", getpid(), i);
 		}
 
 		// format the filename
@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
 		if (stat(filename, &stat_buf) != -1) {
 			// we found the node
 			FAN_CTRL_HWMON_NODE = i;
-			LOGI("Found Asus fan-control hwmon node at %d.\n", getpid(), i);
+			LOGI("\tFound Asus fan-control hwmon node at %d.\n", getpid(), i);
 
 			/* set the fan speeds */
 			FAN_MAX_SPEED = 255;
@@ -287,11 +287,11 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (CT_HWMON_NODE == -1) {
-		LOGE("Could not find core control hwmon directory.\n", getpid());
+		LOGE("\tCould not find core control hwmon directory.\n", getpid());
 		exit(EXIT_FAILURE);
 	}
 	if (FAN_CTRL_HWMON_NODE == -1) {
-		LOGW("Could not find fan control hwmon directory. Working without it.\n", getpid());
+		LOGW("\tCould not find fan control hwmon directory. Working without it.\n", getpid());
 	}
 	else {
 		for (i = 0; i < max_tries; i++) {
@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 			if (stat(filename, &stat_buf) != -1) {
 				// we found the node
 				FAN_CTRL_HWMON_NODE = i;
-				LOGI("Found asus fan-control sysfs interface.\n", getpid());
+				LOGI("\tFound asus fan-control sysfs interface.\n", getpid());
 				// set the fan control global variable.
 				FAN_CTRL_HWMON_SUBNODE = i;
 			}
@@ -319,15 +319,23 @@ int main(int argc, char *argv[])
 	CPUINFO_MAX_FREQ = read_integer(filename);
 
 	if ((CPUINFO_MIN_FREQ == -1) || (CPUINFO_MIN_FREQ == -1)) {
-		LOGE("Could not read cpu scaling limits.\n", getpid());
+		LOGE("\tCould not read cpu scaling limits.\n", getpid());
 		exit(EXIT_FAILURE);
 	}
 	else {
-		LOGI("Successfully read cpu scaling limits. "
-			       	" max_freq: %d\t min_freq: %d\n", getpid(),
+		LOGI("\tSuccessfully read cpu scaling limits. "
+			" max_freq: %d KHz\t min_freq: %d KHz\n", getpid(),
 				CPUINFO_MAX_FREQ, CPUINFO_MIN_FREQ);
 	}
 
 	// make sure an illegal target frequency wasn't specified.
 	if (SCALING_TARGET_FREQ > CPUINFO_MAX_FREQ ) SCALING_TARGET_FREQ = CPUINFO_MAX_FREQ;
+
+	/* print some information about the values we set */
+	LOGI("\tSet polling interval to %d us.\n", getpid(), POLLING_INTERVAL_US);
+	LOGI("\tSet scaling target freq to %d KHz.\n", getpid(), SCALING_TARGET_FREQ);
+	LOGI("\tSet scaling step to %d KHz.\n", getpid(), SCALING_STEP);
+	LOGI("\tSet cpu target temperature to %d mC.\n", getpid(), CPU_TARGET_TEMP);
+	LOGI("\tSet cpus to throttle to %d.\n", getpid(), NUM_CORES * (HT_AVAILABLE+1));
+	LOGI("Done reading/setting throttling parameters.\n", getpid());
 }
