@@ -51,9 +51,13 @@
 struct throttle_settings;
 
 /*==== GLOBALS ===== */
-pthread_t * threads;
 FILE * log_file;
+
+/* struct to store runtime settings */
 struct throttle_settings settings;
+
+/* config file */
+char * config_file_path;
 
 struct throttle_settings {
 	/* logging */
@@ -186,5 +190,19 @@ void parse_commmand_line(int argc, char *argv[]);
 /* Signal handler function to handle termination
  * signals and reset hardware settings to original. */
 void handler(int signal);
+
+/* Read the configuration specified by the user.
+ *
+ * @return: 0 if succesful, -1 otherwise. */
+int read_configuration_file();
+
+/* Write to the configuration specified by the user.
+ *
+ * @return: 0 if succesful, -1 otherwise. */
+int write_configuration_file();
+
+/* Read sysfs interfaces and populate the
+ * throttle_settings buffer with basic defaults. */
+void initialise_settings();
 
 #endif /* CPU_THROTTLE_H */

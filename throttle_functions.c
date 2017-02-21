@@ -392,6 +392,180 @@ void * worker(void* worker_num) {
 	return NULL;
 }
 
+/* Read the configuration specified by the user.
+ *
+ * @return: 0 if succesful, -1 otherwise. */
+int read_configuration_file() {
+
+	struct stat stat_buf;
+	int fd;
+	int rc;
+
+	// Do nothing if there's no config file specified.
+	if (config_file_path == NULL) {
+		return 0;
+	}
+	/* check if the file exists at that path */
+	if (stat(config_file_path, &stat_buf) != -1) {
+		// we found the node
+		LOGI("\tFound config file at %s.\n",
+				getpid(), config_file_path);
+
+		/* open the file */
+		if ((fd = open(config_file_path, O_RDWR)) == -1) {
+			perror("open");
+			LOGE("Failed to open config file %s for writing.\n",
+					getpid(), config_file_path);
+			return fd;
+		}
+
+		/* write the settings to the file */
+		rc = read(fd, &settings,
+				sizeof(struct throttle_settings));
+
+		if (rc == -1) {
+			perror("open");
+			LOGE("Failed to open to config file at %s.\n",
+					getpid(), config_file_path);
+			return rc;
+		}
+		close(fd);
+		return 0;
+	}
+
+	return 0;
+}
+
+/* Read sysfs interfaces and populate the
+ * throttle_settings buffer with basic defaults. */
+void initialise_settings(void) {
+
+	struct stat stat_buf;
+	char filename[MAX_BUF_SIZE];
+
+	int i = 0, max_tries = 10;
+
+	/* initialise global pointers to NULL */
+	threads = NULL;
+	log_file = NULL;
+	config_file_path = NULL;
+
+	// initialise the hwmon global variables
+	settings.sysfs_coretemp_hwmon_node = -1;
+	settings.sysfs_fanctrl_hwmon_node = -1;
+	settings.sysfs_fanctrl_hwmon_subnode = -1;
+
+	/* find the hwmon nodes for the core control
+	 *  and fan control */
+	for (i = 0; i < max_tries; i++) {
+		// format the filename
+		sprintf(filename, CT_HWMON_DIR, i, "");
+
+		// stat the dir
+		if (stat(filename, &stat_buf) != -1) {
+			// we found the node
+			settings.sysfs_coretemp_hwmon_node = i;
+		}
+
+		// format the filename
+		sprintf(filename, FAN_CTRL_DIR, i, "");
+
+		// stat the dir
+		if (stat(filename, &stat_buf) != -1) {
+			// we found the node
+			settings.sysfs_fanctrl_hwmon_node = i;
+		}
+	}
+	/* find out the naming convention for the pwm files */
+	if (settings.sysfs_fanctrl_hwmon_node != -1) {
+		for (i = 0; i < max_tries; i++) {
+			char fanctrl_file[MIN_BUF_SIZE];
+
+			// format the filename
+			sprintf(fanctrl_file, "pwm%d_enable", i);
+			sprintf(filename, FAN_CTRL_DIR, i, fanctrl_file);
+
+			// stat the file
+			if (stat(filename, &stat_buf) != -1) {
+				// set the fan control global variable.
+				settings.sysfs_fanctrl_hwmon_subnode = i;
+			}
+		}
+	}
+
+	/* set the fan speeds */
+	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
+		char general_buf[MIN_BUF_SIZE];
+		sprintf(general_buf, "fan%d_speed_max", settings.sysfs_fanctrl_hwmon_subnode);
+		sprintf(filename, FAN_CTRL_DIR, settings.sysfs_fanctrl_hwmon_node, general_buf);
+		settings.fan_max_speed = read_integer(filename);
+		sprintf(general_buf, "fan%d_min", settings.sysfs_fanctrl_hwmon_subnode);
+		sprintf(filename, FAN_CTRL_DIR, settings.sysfs_fanctrl_hwmon_node, general_buf);
+		settings.fan_min_speed = read_integer(filename);
+	}
+
+	/* get the cpuinfo scaling limits */
+	sprintf(filename, SCALING_DIR, 0, "cpuinfo_min_freq");
+	settings.cpuinfo_min_freq = read_integer(filename);
+	sprintf(filename, SCALING_DIR, 0, "cpuinfo_max_freq");
+	settings.cpuinfo_max_freq = read_integer(filename);
+
+	// initialise to -1. We will set this later.
+	settings.fan_target_speed = -1;
+
+	/* set the default target freqency to the maximum */
+	settings.cpu_target_freq = settings.cpuinfo_max_freq;
+
+	/* set sane defaults for everything */
+	settings.polling_interval = MS_TO_US(500);
+	settings.cpu_scaling_step = MHZ_TO_KHZ(100);
+	settings.cpu_target_temperature = C_TO_MC(55);
+	settings.hysteresis_range = 0.1;
+	settings.hysteresis_reset_threshold = 100;
+	settings.fan_scaling_step = 10;
+	settings.cpu_ht_available = 0;
+	settings.num_cores = 1;
+
+	/* disable logging by default */
+	settings.logging_enabled = 0;
+}
+
+/* Write to the configuration specified by the user.
+ *
+ * @return: 0 if succesful, -1 otherwise. */
+int write_configuration_file()
+{
+	int fd;
+	int rc;
+
+	// Do nothing if no config was specified.
+	if (config_file_path == NULL) {
+		return 0;
+	}
+
+	/* open the file */
+	if ((fd = open(config_file_path, O_RDWR)) == -1) {
+		perror("open");
+		LOGE("Failed to open config file %s for writing.\n",
+				getpid(), config_file_path);
+		return fd;
+	}
+
+	/* write the settings to the file */
+	rc = write(fd, &settings,
+			sizeof(struct throttle_settings));
+
+	if (rc == -1) {
+		perror("write");
+		LOGE("Failed to write to config file at %s.\n",
+				getpid(), config_file_path);
+		return rc;
+	}
+
+	close(fd);
+	return 0;
+}
+
 /* Helper function to parse command line arguments from main */
 void parse_commmand_line(int argc, char *argv[]) {
 
@@ -409,31 +583,20 @@ void parse_commmand_line(int argc, char *argv[]) {
 		{"hysteresis",	required_argument,       0, 'r' },
 		{"reset-threshold",	required_argument,       0, 'u' },
 		{"fan-rest-speed",	required_argument,       0, 'e' },
+		{"config",	required_argument,       0, 'o' },
 		{"threading",	no_argument,       0, 'v' },
 		{"cores",	no_argument,       0, 'c' },
 		{"help",	no_argument,       0, 'h' },
 		{0,         0,                 0,  0 }
 	};
 
-	/* set sane defaults for everything */
-	settings.polling_interval = MS_TO_US(500);
-	settings.cpu_target_freq = MHZ_TO_KHZ(2400);
-	settings.cpu_scaling_step = MHZ_TO_KHZ(100);
-	settings.cpu_target_temperature = C_TO_MC(55);
-	settings.hysteresis_range = 0.1;
-	settings.hysteresis_reset_threshold = 100;
-	settings.fan_target_speed = 50;
-	settings.fan_scaling_step = 10;
-	settings.cpu_ht_available = 0;
-	settings.num_cores = 1;
-
-	/* disable logging by default */
-	settings.logging_enabled = 0;
-	log_file = stderr;
-
 	/* read in the command line args if anything was passed */
 	while ( (opt = getopt_long (argc, argv, "i:f:s:c:t:l:r:e:u:hv", long_options, &optind)) != -1 ) {
 		switch (opt) {
+		    case 'o':
+			config_file_path = malloc(MAX_BUF_SIZE);
+			strncpy(config_file_path, optarg, MAX_BUF_SIZE);
+			break;
 		    case 'u':
 			settings.hysteresis_reset_threshold=atoi(optarg);
 			break;
@@ -479,6 +642,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "  -r, --hysteresis\tHysteresis range (< 51, in percent) as an integer.\n");
 			fprintf (stderr, "  -u, --reset-threshold\tNumber of intervals spent consecutively in \n"
 					"hysteresis before fan speed and cpu clock are reset.\n");
+			fprintf (stderr, "  -o, --config\tPath to read/write binary config.\n" );
 			fprintf (stderr, "  -c, --cores\tnumber of (physical) cores on the system.\n" );
 			fprintf (stderr, "  -l, --log\tPath to log file.\n" );
 			fprintf (stderr, "  -h, --help\tprint this message.\n");
@@ -506,6 +670,10 @@ void handler(int signal) {
 		LOGI("Enabling automatic fan control...\n", getpid());
 		write_integer(fanctrl_filename, 0);
 	}
+
+	/* write to configuration file if one was passed */
+	LOGI("Saving configuration...\n", getpid());
+	write_configuration_file();
 
 	/* reset the cpu maximum frequency */
 	for (i = 0; i < settings.num_cores; i++) {
