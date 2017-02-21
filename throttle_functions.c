@@ -578,7 +578,8 @@ void parse_commmand_line(int argc, char *argv[]) {
 		/* *name ,  has_arg,           *flag,  val */
 		{"interval",	required_argument,       0, 'i' },
 		{"freq",	required_argument,       0, 'f' },
-		{"step",	required_argument,       0, 's' },
+		{"cpu-step",	required_argument,       0, 's' },
+		{"fan-step",	required_argument,       0, 'a' },
 		{"temp",	required_argument,       0, 't' },
 		{"log",	required_argument,       0, 'l' },
 		{"hysteresis",	required_argument,       0, 'r' },
@@ -600,6 +601,9 @@ void parse_commmand_line(int argc, char *argv[]) {
 			break;
 		    case 'u':
 			settings.hysteresis_reset_threshold=atoi(optarg);
+			break;
+		    case 'a':
+			settings.fan_scaling_step=atoi(optarg);
 			break;
 		    case 'e':
 			settings.fan_target_speed=atoi(optarg);
@@ -636,7 +640,8 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "\nOptional commands:\n");
 			fprintf (stderr, "  -i, --interval\ttime to wait before scaling again, in ms.\n" );
 			fprintf (stderr, "  -f, --freq\tfrequency to limit to, in MHz.\n" );
-			fprintf (stderr, "  -s, --step\tscaling step, in MHz\n" );
+			fprintf (stderr, "  -s, --cpu-step\tscaling step, in MHz\n" );
+			fprintf (stderr, "  -a, --fan-step\t Fan scaling step.\n");
 			fprintf (stderr, "  -t, --temp\tTarget temperature, in degrees.\n" );
 			fprintf (stderr, "  -v, --threading\tWhether threading is available or not. \n" );
 			fprintf (stderr, "  -e, --fan-rest-speed\t Speed to set fan to in hysteresis.\n");
