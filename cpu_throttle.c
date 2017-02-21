@@ -309,7 +309,7 @@ void * worker(void* worker_num) {
 
 	/* Format the temperature reading file. We add two because the
 	 * hwmon files are 1-indexed and the first one is that of the whole die. */
-	sprintf(filename_buf, "temp%d_max", core+2);
+	sprintf(filename_buf, "temp%d_input", core+2);
 	sprintf(temperature_filename, CT_HWMON_DIR, CT_HWMON_NODE, filename_buf);
 
 	if (FAN_CTRL_HWMON_SUBNODE != -1) {
@@ -328,6 +328,7 @@ void * worker(void* worker_num) {
 
 		/* read the current temp of the core */
 		curr_temp = read_integer(temperature_filename);
+		LOGI("\tCurrent temperature for cpu core %d is %dmC.\n", getpid(), core, curr_temp);
 		if (curr_temp == -1) {
 			LOGE("\tCould not read cpu core %d temperature.\n", getpid(), core);
 			continue;
@@ -397,14 +398,12 @@ void * worker(void* worker_num) {
 			}
 			/* if our current temp is lower than the previous one */
 			else if (temp_difference > 0) {
-//#if 0
 				/* decrease the fan speed by half a step */
 				if (FAN_CTRL_HWMON_SUBNODE != -1) {
-					decrease_fan_speed((FAN_STEP/2));
+					increase_fan_speed((FAN_STEP/2));
 				}
 				/* increase the processor speed by half a step */
-				increase_max_freq(core, (CPU_SCALING_STEP/2));
-//#endif
+				decrease_max_freq(core, (CPU_SCALING_STEP/2));
 			}
 			/* if our current temp is worse than the previous one */
 			else {
