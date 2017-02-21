@@ -52,6 +52,7 @@ int CPU_TARGET_TEMP;
 int HYSTERESIS_TEMP_DEVIATION;
 int HYSTERESIS_TEMP_UPPER_LIMIT;
 int HYSTERESIS_TEMP_LOWER_LIMIT;
+int HYSTERESIS_COUNT_RESET_THRESHOLD;
 float HYSTERESIS_TEMP_PERCENT;
 
 /* CPU scaling frequency information.
@@ -303,6 +304,9 @@ void * worker(void* worker_num) {
 	int core = *(int*)worker_num;
 	int curr_temp = 0, prev_temp = 0;
 
+	/* count the number of intervals spent in hysteresis */
+	int intervals_in_hysteresis = 0;
+
 	/* Format the temperature reading file. We add two because the
 	 * hwmon files are 1-indexed and the first one is that of the whole die. */
 	sprintf(filename_buf, "temp%d_max", core+2);
@@ -334,26 +338,41 @@ void * worker(void* worker_num) {
 
 		/*case 1: temp is in hysteresis range of target */
 		if ((curr_temp >= HYSTERESIS_TEMP_LOWER_LIMIT)  && (curr_temp <= HYSTERESIS_TEMP_UPPER_LIMIT)) {
-			/* reset the fan speed */
-			if (FAN_CTRL_HWMON_SUBNODE != -1) {
-				reset_fan_speed();
+
+			/* update the hysteresis counter */
+			intervals_in_hysteresis += 1;
+
+			if (intervals_in_hysteresis == HYSTERESIS_COUNT_RESET_THRESHOLD) {
+
+				/* reset the hysteresis counter */
+				intervals_in_hysteresis = 0;
+
+				/* reset the fan speed */
+				if (FAN_CTRL_HWMON_SUBNODE != -1) {
+					reset_fan_speed();
+				}
+				/* reset the speed to the CPU_TARGET_TEMP */
+				increase_max_freq(core, (CPUINFO_MAX_FREQ));
 			}
-			/* reset the processor speed */
-			reset_max_freq(core);
 		}
 		/*case 2: temp is below the (lower) hysteresis range of target */
 		else if (curr_temp < HYSTERESIS_TEMP_LOWER_LIMIT) {
-//#if 0
-				/* decrease the fan speed */
-				if (FAN_CTRL_HWMON_SUBNODE != -1) {
-					decrease_fan_speed((FAN_STEP/2));
-				}
-				/* adjust the processor speed by half a step */
-				increase_max_freq(core, (CPU_SCALING_STEP/2));
-//#endif
+
+			/* reset hysteresis counter */
+			intervals_in_hysteresis = 0;
+
+			/* decrease the fan speed */
+			if (FAN_CTRL_HWMON_SUBNODE != -1) {
+				decrease_fan_speed((FAN_STEP/2));
+			}
+			/* adjust the processor speed by half a step */
+			increase_max_freq(core, (CPU_SCALING_STEP/2));
 		}
 		/*case 3: temp is beyond the (upper) hysteresis range of target */
 		else {
+			/* reset hysteresis counter */
+			intervals_in_hysteresis = 0;
+
 			/* check if the temperature has dropped significantly
 			 * since the last time we read the temps .*/
 			int temp_difference = prev_temp - curr_temp;
@@ -418,6 +437,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 		{"temp",	required_argument,       0, 't' },
 		{"log",	required_argument,       0, 'l' },
 		{"hysteresis",	required_argument,       0, 'r' },
+		{"reset-threshold",	required_argument,       0, 'u' },
 		{"fan-rest-speed",	required_argument,       0, 'e' },
 		{"threading",	no_argument,       0, 'v' },
 		{"cores",	no_argument,       0, 'c' },
@@ -431,6 +451,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 	CPU_SCALING_STEP = MHZ_TO_KHZ(100);
 	CPU_TARGET_TEMP = C_TO_MC(55);
 	HYSTERESIS_TEMP_PERCENT = 0.1;
+	HYSTERESIS_COUNT_RESET_THRESHOLD = 100;
 	FAN_REST_SPEED = 50;
 	FAN_STEP = 10;
 	HT_AVAILABLE = 0;
@@ -441,8 +462,11 @@ void parse_commmand_line(int argc, char *argv[]) {
 	log_file = stderr;
 
 	/* read in the command line args if anything was passed */
-	while ( (opt = getopt_long (argc, argv, "i:f:s:c:t:l:r:e:hv", long_options, &optind)) != -1 ) {
+	while ( (opt = getopt_long (argc, argv, "i:f:s:c:t:l:r:e:u:hv", long_options, &optind)) != -1 ) {
 		switch (opt) {
+		    case 'u':
+			HYSTERESIS_COUNT_RESET_THRESHOLD=atoi(optarg);
+			break;
 		    case 'e':
 			FAN_REST_SPEED=atoi(optarg);
 			break;
@@ -483,6 +507,8 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "  -v, --threading\tWhether threading is available or not. \n" );
 			fprintf (stderr, "  -e, --fan-rest-speed\t Speed to set fan to in hysteresis.\n");
 			fprintf (stderr, "  -r, --hysteresis\tHysteresis range (< 51, in percent) as an integer.\n");
+			fprintf (stderr, "  -u, --reset-threshold\tNumber of intervals spent consecutively in \n"
+					"hysteresis before fan speed and cpu clock are reset.\n");
 			fprintf (stderr, "  -c, --cores\tnumber of (physical) cores on the system.\n" );
 			fprintf (stderr, "  -l, --log\tPath to log file.\n" );
 			fprintf (stderr, "  -h, --help\tprint this message.\n");
@@ -656,6 +682,7 @@ int main(int argc, char *argv[])
 	LOGI("\tSet cpu scaling step to %dMHz.\n", getpid(), KHZ_TO_MHZ(CPU_SCALING_STEP));
 	LOGI("\tSet cpu target temperature to %dmC.\n", getpid(), CPU_TARGET_TEMP);
 	LOGI("\tSet cpu hysteresis range to %d percent.\n", getpid(), (int)(HYSTERESIS_TEMP_PERCENT*100));
+	LOGI("\tSet hysteresis threshold to %d intervals.\n", getpid(), HYSTERESIS_COUNT_RESET_THRESHOLD);
 	LOGI("\tCalculated temperature hysteresis deviation of %dmC.\n", getpid(), HYSTERESIS_TEMP_DEVIATION);
 	LOGI("\tCalculated temperature hysteresis lower limit of %dmC.\n", getpid(), HYSTERESIS_TEMP_LOWER_LIMIT);
 	LOGI("\tCalculated temperature hysteresis upper limit of %dmC.\n", getpid(), HYSTERESIS_TEMP_UPPER_LIMIT);
