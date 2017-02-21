@@ -445,7 +445,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 	};
 
 	/* set sane defaults for everything */
-	POLLING_INTERVAL_US = MS_TO_US(75);
+	POLLING_INTERVAL_US = MS_TO_US(500);
 	SCALING_TARGET_FREQ = MHZ_TO_KHZ(2400);
 	CPU_SCALING_STEP = MHZ_TO_KHZ(100);
 	CPU_TARGET_TEMP = C_TO_MC(55);
