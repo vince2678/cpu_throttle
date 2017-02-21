@@ -15,9 +15,6 @@
 
 #define MAX_BUF_SIZE 255
 #define MIN_BUF_SIZE 32
-#define FAN_CTRL_DIR "/sys/devices/platform/asus_fan/hwmon/hwmon%d/%s"
-#define CT_HWMON_DIR "/sys/devices/platform/coretemp.0/hwmon/hwmon%d/%s"
-#define SCALING_DIR "/sys/devices/system/cpu/cpu%d/cpufreq/%s"
 
 #define C_TO_MC(x) (x*1000)
 #define MC_TO_C(x) (x/1000)
