@@ -446,7 +446,6 @@ void initialise_settings(void) {
 	int i = 0, max_tries = 10;
 
 	/* initialise global pointers to NULL */
-	threads = NULL;
 	log_file = NULL;
 	config_file_path = NULL;
 
