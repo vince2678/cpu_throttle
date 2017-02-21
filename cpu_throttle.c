@@ -145,7 +145,7 @@ int set_governor(int core, const char* governor)
 	return write_string(filename, governor);
 }
 
-/* Decreases the maximum frequency on cpu core by the step */
+/* Resets the maximum frequency on cpu core to the maximum permissible*/
 int reset_max_freq(int core)
 {
 	char filename[MAX_BUF];
@@ -153,10 +153,10 @@ int reset_max_freq(int core)
 	/* format the full file name */
 	sprintf(filename, SCALING_DIR, core, "scaling_max_freq");
 
-	LOGI("\tResetting cpu %d speed to %d.\n", getpid(), core, SCALING_TARGET_FREQ);
+	LOGI("\tResetting cpu %d speed to %d.\n", getpid(), core, CPUINFO_MAX_FREQ);
 
 	/* write the string to the file and return */
-	return write_integer(filename, SCALING_TARGET_FREQ);
+	return write_integer(filename, CPUINFO_MAX_FREQ);
 }
 
 /* Decreases the maximum frequency on cpu core by the step */
