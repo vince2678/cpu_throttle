@@ -1,9 +1,9 @@
 all: cpu_throttle
 
-cpu_throttle: cpu_throttle.o
+cpu_throttle: throttle_functions.o cpu_throttle.o
 	$(CC) -g -lm -pthread $^ -o $@
 
-.c.o: $@.c
+.c.o: $@.c cpu_throttle.h
 	$(CC) -Wall -Werror -g $^ -c
 
 clean:
