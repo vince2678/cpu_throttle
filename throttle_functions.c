@@ -482,7 +482,9 @@ void initialise_settings(void) {
 
 			// format the filename
 			sprintf(fanctrl_file, "pwm%d_enable", i);
-			sprintf(filename, FAN_CTRL_DIR, i, fanctrl_file);
+			sprintf(filename, FAN_CTRL_DIR,
+				settings.sysfs_fanctrl_hwmon_node,
+				fanctrl_file);
 
 			// stat the file
 			if (stat(filename, &stat_buf) != -1) {
