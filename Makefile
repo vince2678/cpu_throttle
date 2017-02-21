@@ -1,7 +1,7 @@
 all: cpu_throttle
 
 cpu_throttle: cpu_throttle.o
-	$(CC) -g -lm $^ -o $@
+	$(CC) -g -lm -pthread $^ -o $@
 
 .c.o: $@.c
 	$(CC) -Wall -Werror -g $^ -c

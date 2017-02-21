@@ -9,6 +9,7 @@
 #include <math.h>
 #include <errno.h>
 #include <signal.h>
+#include <pthread.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <getopt.h>
@@ -31,6 +32,9 @@
 #define LOGW(...) fprintf(log_file, "[%d] W: " __VA_ARGS__)
 
 /* SOME GLOBAL VARIABLES */
+
+/* Array of pthread_t. Array is defined in main() */
+pthread_t * threads;
 
 FILE * log_file;
 char log_path[MAX_BUF];
@@ -287,7 +291,7 @@ int decrease_fan_speed(int step)
 	return write_integer(fanctrl_filename, fan_speed);
 }
 
-void worker(int core) {
+void * worker(void* worker_num) {
 
 	/* buffers for storing file names */
 	char fanctrl_filename[MAX_BUF];
@@ -296,6 +300,7 @@ void worker(int core) {
 	/* general filename buffer. */
 	char filename_buf[MINI_BUF];
 
+	int core = *(int*)worker_num;
 	int curr_temp = 0, prev_temp = 0;
 
 	/* Format the temperature reading file. We add two because the
@@ -394,7 +399,7 @@ void worker(int core) {
 		}
 		prev_temp = curr_temp;
 	}
-	//TODO: Disable manual fan control on signal/exit
+	return NULL;
 }
 
 /* Helper function that parses command line arguments to main
@@ -492,38 +497,40 @@ void handler(int signal) {
 	char fanctrl_filename[MAX_BUF];
 	int i;
 
-	if (signal == SIGTERM) {
-		LOGI("Termination signal sent winding up...\n", getpid());
-		/* Format the temperature reading file. We add two because the
-		 * hwmon files are 1-indexed and the first one is that of the whole die. */
+	LOGI("Termination signal sent. Winding up...\n", getpid());
 
-		if (FAN_CTRL_HWMON_SUBNODE != -1) {
-			/* format the full file name */
-			sprintf(filename_buf, "pwm%d_enable", FAN_CTRL_HWMON_SUBNODE);
-			sprintf(fanctrl_filename, FAN_CTRL_DIR,
-					FAN_CTRL_HWMON_NODE, filename_buf);
-			/* disable manual fan control */
-			LOGI("Enabling automatic fan control...\n", getpid());
-			write_integer(fanctrl_filename, 0);
-		}
-
-		/* reset the cpu maximum frequency */
-		for (i = 0; i < NUM_CORES; i++) {
-			/* don't scale the virtual cores */
-			if ((i % 2) && (HT_AVAILABLE)) continue;
-
-			LOGI("Resetting cpu%d maximum frequency...\n", getpid(), i);
-			increase_max_freq(i, CPUINFO_MAX_FREQ);
-		}
-		/* exit */
-		exit(EXIT_SUCCESS);
+	if (FAN_CTRL_HWMON_SUBNODE != -1) {
+		/* format the full file name */
+		sprintf(filename_buf, "pwm%d_enable", FAN_CTRL_HWMON_SUBNODE);
+		sprintf(fanctrl_filename, FAN_CTRL_DIR,
+				FAN_CTRL_HWMON_NODE, filename_buf);
+		/* disable manual fan control */
+		LOGI("Enabling automatic fan control...\n", getpid());
+		write_integer(fanctrl_filename, 0);
 	}
+
+	/* reset the cpu maximum frequency */
+	for (i = 0; i < NUM_CORES; i++) {
+		/* don't scale the virtual cores */
+		if ((i % 2) && (HT_AVAILABLE)) continue;
+
+		LOGI("Resetting cpu%d maximum frequency...\n", getpid(), i);
+		reset_max_freq(i);
+	}
+	/* exit */
+	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[])
 {
 	/* parse the command line */
 	parse_commmand_line(argc, argv);
+
+	/*define the pthreads array */
+	pthread_t pthreads_arr[NUM_CORES];
+
+	/* set the global pointer */
+	threads = pthreads_arr;
 
 	/* initialise the sigaction struct */
 	struct sigaction sa;
@@ -532,6 +539,9 @@ int main(int argc, char *argv[])
 	sa.sa_flags = SA_RESTART;
 
 	/* set up signal handlers */
+	if (sigaction(SIGINT, &sa, NULL) == -1) {
+		perror("fopen");
+	}
 	if (sigaction(SIGTERM, &sa, NULL) == -1) {
 		perror("fopen");
 	}
@@ -666,5 +676,30 @@ int main(int argc, char *argv[])
 
 	/* start the scaling/throttling threads */
 	LOGI("Starting throttling threads...\n", getpid());
+	for (i = 0; i < NUM_CORES; i++) {
+		/* don't scale the virtual cores */
+		if ((i % 2) && (HT_AVAILABLE)) continue;
 
+		LOGI("Starting thread for cpu%d...\n", getpid(), i);
+
+		int rc = pthread_create(&(threads[i]), NULL, worker, &i);
+		if (rc) {
+			LOGE("Failed to start thread for cpu%d...\n", getpid(), i);
+			exit(EXIT_FAILURE);
+		}
+	}
+	/* reset the cpu maximum frequency */
+	for (i = 0; i < NUM_CORES; i++) {
+		/* don't scale the virtual cores */
+		if ((i % 2) && (HT_AVAILABLE)) continue;
+
+		LOGI("Waiting for cpu%d thread to finish...\n", getpid(), i);
+		int rc = pthread_join(threads[i], NULL);
+		if (rc) {
+			LOGE("Failed to join thread for cpu%d...\n", getpid(), i);
+		}
+
+		LOGI("Resetting cpu%d maximum frequency...\n", getpid(), i);
+		reset_max_freq(i);
+	}
 }
