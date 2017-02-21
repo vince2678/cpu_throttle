@@ -9,11 +9,18 @@ CFLAGS = -Wall -Werror -g \
 
 all: cpu_throttle
 
+install: cpu_throttle
+	cp cpu_throttle /usr/local/bin/cpu_throttle
+	chmod +x /usr/local/bin/cpu_throttle
+
 cpu_throttle: throttle_functions.o cpu_throttle.o cpu_throttle.h
 	$(CC) $(CFLAGS) -g -lm -pthread $^ -o $@
 
 .c.o: $@.c cpu_throttle.h
 	$(CC) $(CFLAGS) -Wall -Werror -g $^ -c
+
+uninstall:
+	rm /usr/local/bin/cpu_throttle
 
 clean:
 	rm -f *.o *vgcore* cpu_throttle
