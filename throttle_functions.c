@@ -165,8 +165,8 @@ int increase_max_freq(int core, int step)
 
 	/* determine the new frequency */
 	freq += step;
-	if (freq > settings.cpu_target_freq) {
-		freq = settings.cpu_target_freq;
+	if (freq > settings.cpu_max_freq) {
+		freq = settings.cpu_max_freq;
 		LOGI("\tIncreasing cpu%d speed ceiling to %dKHz.\n",
 			getpid(), core, freq);
 	}
@@ -179,7 +179,8 @@ int increase_max_freq(int core, int step)
 	return write_integer(filename, freq);
 }
 
-/* Reset the fan speed to the target fan speed.
+/* Reset the fan speed to the
+ * (user defined) minimum fan speed.
  *
  * @return: 0 if succesful, -1 otherwise. */
 int reset_fan_speed(void)
@@ -192,10 +193,10 @@ int reset_fan_speed(void)
 	sprintf(fanctrl_filename, FAN_CTRL_DIR,
 			settings.sysfs_fanctrl_hwmon_node, filename_buf);
 
-	LOGI("\tResetting fan speed to %d.\n", getpid(), settings.fan_target_speed);
+	LOGI("\tResetting fan speed to %d.\n", getpid(), settings.fan_min_speed);
 
 	/* set the fan speed */
-	return write_integer(fanctrl_filename, settings.fan_target_speed);
+	return write_integer(fanctrl_filename, settings.fan_min_speed);
 }
 
 /* Increase the fan speed by step
@@ -217,8 +218,8 @@ int increase_fan_speed(int step)
 
 	/* determine the new fan speed */
 	fan_speed += step;
-	if (fan_speed > settings.fan_max_speed) {
-		fan_speed = settings.fan_max_speed;
+	if (fan_speed > settings.fan_hw_max_speed) {
+		fan_speed = settings.fan_hw_max_speed;
 		LOGI("\tIncreasing fan speed to %d.\n",
 			getpid(), fan_speed);
 	}
@@ -324,7 +325,7 @@ void * worker(void* worker_num) {
 				if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
 					reset_fan_speed();
 				}
-				/* reset the speed to the settings.cpu_target_temperature */
+				/* reset the speed to the settings.cpu_max_freq */
 				increase_max_freq(core, (settings.cpuinfo_max_freq));
 			}
 		}
@@ -499,10 +500,10 @@ void initialise_settings(void) {
 		char general_buf[MIN_BUF_SIZE];
 		sprintf(general_buf, "fan%d_speed_max", settings.sysfs_fanctrl_hwmon_subnode);
 		sprintf(filename, FAN_CTRL_DIR, settings.sysfs_fanctrl_hwmon_node, general_buf);
-		settings.fan_max_speed = read_integer(filename);
+		settings.fan_hw_max_speed = read_integer(filename);
 		sprintf(general_buf, "fan%d_min", settings.sysfs_fanctrl_hwmon_subnode);
 		sprintf(filename, FAN_CTRL_DIR, settings.sysfs_fanctrl_hwmon_node, general_buf);
-		settings.fan_min_speed = read_integer(filename);
+		settings.fan_hw_min_speed = read_integer(filename);
 	}
 
 	/* get the cpuinfo scaling limits */
@@ -512,10 +513,10 @@ void initialise_settings(void) {
 	settings.cpuinfo_max_freq = read_integer(filename);
 
 	// initialise to -1. We will set this later.
-	settings.fan_target_speed = -1;
+	settings.fan_min_speed = -1;
 
 	/* set the default target freqency to the maximum */
-	settings.cpu_target_freq = settings.cpuinfo_max_freq;
+	settings.cpu_max_freq = settings.cpuinfo_max_freq;
 
 	/* set sane defaults for everything */
 	settings.polling_interval = MS_TO_US(500);
@@ -584,7 +585,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 		{"log",	required_argument,       0, 'l' },
 		{"hysteresis",	required_argument,       0, 'r' },
 		{"reset-threshold",	required_argument,       0, 'u' },
-		{"fan-rest-speed",	required_argument,       0, 'e' },
+		{"minimum-fan-speed",	required_argument,       0, 'e' },
 		{"config",	required_argument,       0, 'o' },
 		{"threading",	no_argument,       0, 'v' },
 		{"cores",	no_argument,       0, 'c' },
@@ -606,7 +607,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			settings.fan_scaling_step=atoi(optarg);
 			break;
 		    case 'e':
-			settings.fan_target_speed=atoi(optarg);
+			settings.fan_min_speed=atoi(optarg);
 			break;
 		    case 'r':
 			settings.hysteresis_range=(float) (strtol(optarg, NULL, 10) / 100.0);
@@ -615,7 +616,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			settings.polling_interval=MS_TO_US(atoi(optarg));
 			break;
 		    case 'f':
-			settings.cpu_target_freq=MHZ_TO_KHZ(atoi(optarg));
+			settings.cpu_max_freq=MHZ_TO_KHZ(atoi(optarg));
 			break;
 		    case 's':
 			settings.cpu_scaling_step=MHZ_TO_KHZ(atoi(optarg));
@@ -639,12 +640,12 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "Usage: %s [OPTION]\n",argv[0]);
 			fprintf (stderr, "\nOptional commands:\n");
 			fprintf (stderr, "  -i, --interval\ttime to wait before scaling again, in ms.\n" );
-			fprintf (stderr, "  -f, --freq\tfrequency to limit to, in MHz.\n" );
+			fprintf (stderr, "  -f, --freq\tMaximum frequency cpus can attain, in MHz.\n" );
 			fprintf (stderr, "  -s, --cpu-step\tscaling step, in MHz\n" );
 			fprintf (stderr, "  -a, --fan-step\t Fan scaling step.\n");
 			fprintf (stderr, "  -t, --temp\tTarget temperature, in degrees.\n" );
 			fprintf (stderr, "  -v, --threading\tWhether threading is available or not. \n" );
-			fprintf (stderr, "  -e, --fan-rest-speed\t Speed to set fan to in hysteresis.\n");
+			fprintf (stderr, "  -e, --minimum-fan-speed\t Minimum speed fan can reach.\n");
 			fprintf (stderr, "  -r, --hysteresis\tHysteresis range (< 51, in percent) as an integer.\n");
 			fprintf (stderr, "  -u, --reset-threshold\tNumber of intervals spent consecutively in \n"
 					"hysteresis before fan speed and cpu clock are reset.\n");

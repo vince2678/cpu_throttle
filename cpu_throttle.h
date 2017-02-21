@@ -84,29 +84,32 @@ struct throttle_settings {
 	 * and fan speed to hardware defaults. */
 	int hysteresis_reset_threshold;
 
-	/* CPU scaling frequency information.
+	/* fan speed information read from sysfs */
+	int fan_hw_min_speed;
+	int fan_hw_max_speed;
+
+	/* actual minimum speed to be used when adjusting
+	 * temperature. This can be user defined. */
+	int fan_min_speed;
+
+	/* Scaling step for the fan. Amount by which we
+	 * scale after every interval */
+	int fan_scaling_step;
+
+	/* CPU scaling frequency information read from sysfs.
 	 * These values are in KHz. */
 	int cpuinfo_min_freq;
 	int cpuinfo_max_freq;
-
-	/* fan speed information read from sysfs */
-	int fan_min_speed;
-	int fan_max_speed;
 
 	/* cpu target temperature in mC */ 
 	int cpu_target_temperature;
 
 	/* The target frequency to scale to, in KHz */
-	int cpu_target_freq;
+	int cpu_max_freq;
 
 	/* Scaling step in Khz. Amount by which we scale
 	 * after every interval */
 	int cpu_scaling_step;
-
-	/* Scaling step for the fan. Amount by which we
-	 * scale after every interval */
-	int fan_scaling_step;
-	int fan_target_speed;
 
 	/* how long we wait before reading sysfs files
 	 *  again in uS */
@@ -165,7 +168,10 @@ int decrease_max_freq(int core, int step);
  * @return: 0 if succesful, -1 otherwise. */
 int increase_max_freq(int core, int step);
 
-/* Reset the fan speed to the target fan speed.
+
+/* Reset the fan speed to the
+ * (user defined) minimum fan speed.
+
  *
  * @return: 0 if succesful, -1 otherwise. */
 int reset_fan_speed(void);

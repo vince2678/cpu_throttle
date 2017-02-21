@@ -88,8 +88,8 @@ int main(int argc, char *argv[])
 
 	/* set the target speed to the hardware minimum if
 	 * not already set. */
-	if (settings.fan_target_speed == -1) {
-		settings.fan_target_speed = settings.fan_min_speed;
+	if (settings.fan_min_speed == -1) {
+		settings.fan_min_speed = settings.fan_hw_min_speed;
 	}
 
 	/* calculate the hysteresis range */
@@ -110,13 +110,13 @@ int main(int argc, char *argv[])
 	}
 
 	// make sure an illegal target frequency wasn't specified.
-	if (settings.cpu_target_freq > settings.cpuinfo_max_freq ) {
-		settings.cpu_target_freq = settings.cpuinfo_max_freq;
+	if (settings.cpu_max_freq > settings.cpuinfo_max_freq ) {
+		settings.cpu_max_freq = settings.cpuinfo_max_freq;
 	}
 
 	/* print some information about the values we set */
 	LOGI("\tSet polling interval to %dms.\n", getpid(), US_TO_MS(settings.polling_interval));
-	LOGI("\tSet scaling target freq to %dMHz.\n", getpid(), KHZ_TO_MHZ(settings.cpu_target_freq));
+	LOGI("\tSet maximum scaling freq to %dMHz.\n", getpid(), KHZ_TO_MHZ(settings.cpu_max_freq));
 	LOGI("\tSet cpu scaling step to %dMHz.\n", getpid(), KHZ_TO_MHZ(settings.cpu_scaling_step));
 	LOGI("\tSet cpu target temperature to %dmC.\n", getpid(), settings.cpu_target_temperature);
 	LOGI("\tSet cpu hysteresis range to %d percent.\n", getpid(), (int)(settings.hysteresis_range*100));
@@ -128,18 +128,18 @@ int main(int argc, char *argv[])
 
 	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
 		// make sure an illegal target fan speed wasn't specified.
-		if (settings.fan_target_speed > settings.fan_max_speed ) {
-			settings.fan_target_speed = settings.fan_max_speed;
+		if (settings.fan_min_speed > settings.fan_hw_max_speed ) {
+			settings.fan_min_speed = settings.fan_hw_max_speed;
 		}
-		else if (settings.fan_target_speed < settings.fan_min_speed ) {
-			settings.fan_target_speed = settings.fan_min_speed;
+		else if (settings.fan_min_speed < settings.fan_hw_min_speed ) {
+			settings.fan_min_speed = settings.fan_hw_min_speed;
 		}
 
 		LOGI("\tSet fan scaling step to %d.\n", getpid(), settings.fan_scaling_step);
-		LOGI("\tSet fan rest speed to %d.\n", getpid(), settings.fan_target_speed);
+		LOGI("\tSet fan minimum speed to %d.\n", getpid(), settings.fan_min_speed);
 		LOGI("\tSuccessfully read fan speed limits.\n"
 			"\t\tspeed_max: %d\t speed_min: %d\n", getpid(),
-				settings.fan_max_speed, settings.fan_min_speed);
+				settings.fan_hw_max_speed, settings.fan_hw_min_speed);
 	}
 
 	LOGI("Done reading/setting throttling parameters.\n", getpid());
