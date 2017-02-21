@@ -137,11 +137,11 @@ int decrease_max_freq(int core, int step)
 	freq -= step;
 	if (freq < settings.cpuinfo_min_freq) {
 		freq = settings.cpuinfo_min_freq;
-		LOGI("\tDecreasing cpu%d speed to %d KHz.\n",
+		LOGI("\tDecreasing cpu%d speed ceiling to %dKHz.\n",
 			getpid(), core, freq);
 	}
 	else {
-		LOGI("\tDecreasing cpu%d speed by %d KHz.\n",
+		LOGI("\tDecreasing cpu%d speed ceiling by %dKHz.\n",
 			getpid(), core, step);
 	}
 
@@ -167,11 +167,11 @@ int increase_max_freq(int core, int step)
 	freq += step;
 	if (freq > settings.cpu_target_freq) {
 		freq = settings.cpu_target_freq;
-		LOGI("\tIncreasing cpu%d speed to %d KHz.\n",
+		LOGI("\tIncreasing cpu%d speed ceiling to %dKHz.\n",
 			getpid(), core, freq);
 	}
 	else {
-		LOGI("\tIncreasing cpu%d speed by %d KHz.\n",
+		LOGI("\tIncreasing cpu%d speed ceiling by %dKHz.\n",
 			getpid(), core, step);
 	}
 
