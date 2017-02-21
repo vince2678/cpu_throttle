@@ -593,7 +593,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 	};
 
 	/* read in the command line args if anything was passed */
-	while ( (opt = getopt_long (argc, argv, "i:f:s:c:t:l:r:e:u:hv", long_options, &optind)) != -1 ) {
+	while ( (opt = getopt_long (argc, argv, "i:f:s:a:c:t:l:r:e:u:hv", long_options, &optind)) != -1 ) {
 		switch (opt) {
 		    case 'o':
 			config_file_path = malloc(MAX_BUF_SIZE);
