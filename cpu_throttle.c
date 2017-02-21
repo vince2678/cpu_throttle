@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <math.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/wait.h>
@@ -321,6 +322,9 @@ void freq_max_worker(int core) {
 			LOGE("\tCould not read cpu core %d temperature.\n", getpid(), core);
 			continue;
 		}
+		else if (!curr_temp) { // initialise prev_temp
+			prev_temp = curr_temp;
+		}
 
 		/*case 1: temp is in hysteresis range of target */
 		if ((curr_temp >= HYSTERESIS_TEMP_LOWER_LIMIT)  && (curr_temp <= HYSTERESIS_TEMP_UPPER_LIMIT)) {
@@ -334,37 +338,57 @@ void freq_max_worker(int core) {
 		/*case 2: temp is below the (lower) hysteresis range of target */
 		else if (curr_temp < HYSTERESIS_TEMP_LOWER_LIMIT) {
 //#if 0
-				/* reset the fan speed */
-				if (FAN_CTRL_HWMON_SUBNODE != -1) {
-					reset_fan_speed();
-				}
-				/* adjust the processor speed by half a step */
-				increase_max_freq(core, (CPU_SCALING_STEP/2));
-//#endif
-		}
-		/*case 2: temp is beyond the (upper) hysteresis range of target */
-		else if (curr_temp > HYSTERESIS_TEMP_UPPER_LIMIT) {
-			/* check if the temperature has dropped significantly
-			 * since the last time we read the temps .*/
-			int temp_difference = prev_temp - curr_temp;
-			if ((curr_temp < prev_temp) &&
-					(temp_difference >= HYSTERESIS_TEMP_DEVIATION)) {
-//#if 0
-				/* adjust the fan speed by half a step */
+				/* decrease the fan speed */
 				if (FAN_CTRL_HWMON_SUBNODE != -1) {
 					decrease_fan_speed((FAN_STEP/2));
 				}
 				/* adjust the processor speed by half a step */
 				increase_max_freq(core, (CPU_SCALING_STEP/2));
 //#endif
-			}
-			else {
-				/* adjust the fan speed */
+		}
+		/*case 3: temp is beyond the (upper) hysteresis range of target */
+		else {
+			/* check if the temperature has dropped significantly
+			 * since the last time we read the temps .*/
+			int temp_difference = prev_temp - curr_temp;
+
+			/* we essentially want to multiply the steps by how many
+			 * multiples of the hysteresis deviation we moved since the
+			 * last loop iteration */
+			int deviations = ceil(((float)temp_difference /
+						(float)HYSTERESIS_TEMP_DEVIATION));
+
+			/* make sure to get the absolute value*/
+			deviations = abs(deviations);
+
+			/* if our temperature didn't change, move it a step */
+			if (temp_difference == 0) {
 				if (FAN_CTRL_HWMON_SUBNODE != -1) {
-					increase_fan_speed(FAN_STEP);
+					/* adjust the fan speed by a step */
+					increase_fan_speed((FAN_STEP));
 				}
-				/* adjust the processor speed */
-				decrease_max_freq(core, CPU_SCALING_STEP);
+				/* adjust the processor speed by a step */
+				decrease_max_freq(core, (CPU_SCALING_STEP));
+			}
+			/* if our current temp is lower than the previous one */
+			else if (temp_difference > 0) {
+//#if 0
+				/* decrease the fan speed by half a step */
+				if (FAN_CTRL_HWMON_SUBNODE != -1) {
+					decrease_fan_speed((FAN_STEP/2));
+				}
+				/* increase the processor speed by half a step */
+				increase_max_freq(core, (CPU_SCALING_STEP/2));
+//#endif
+			}
+			/* if our current temp is worse than the previous one */
+			else {
+				/* increase the fan speed by deviations steps */
+				if (FAN_CTRL_HWMON_SUBNODE != -1) {
+					increase_fan_speed(FAN_STEP * deviations);
+				}
+				/* decrease the processor speed by deviations steps */
+				decrease_max_freq(core, CPU_SCALING_STEP * deviations);
 			}
 		}
 		prev_temp = curr_temp;
@@ -563,7 +587,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		LOGI("\tSuccessfully read cpu scaling limits.\n"
-			"\t\tmax_freq: %d MHz\t min_freq: %d MHz\n", getpid(),
+			"\t\t\tmax_freq:%dMHz min_freq:%dMHz\n", getpid(),
 				KHZ_TO_MHZ(CPUINFO_MAX_FREQ), KHZ_TO_MHZ(CPUINFO_MIN_FREQ));
 	}
 
@@ -571,14 +595,14 @@ int main(int argc, char *argv[])
 	if (SCALING_TARGET_FREQ > CPUINFO_MAX_FREQ ) SCALING_TARGET_FREQ = CPUINFO_MAX_FREQ;
 
 	/* print some information about the values we set */
-	LOGI("\tSet polling interval to %d ms.\n", getpid(), US_TO_MS(POLLING_INTERVAL_US));
-	LOGI("\tSet scaling target freq to %d MHz.\n", getpid(), KHZ_TO_MHZ(SCALING_TARGET_FREQ));
-	LOGI("\tSet cpu scaling step to %d MHz.\n", getpid(), KHZ_TO_MHZ(CPU_SCALING_STEP));
-	LOGI("\tSet cpu target temperature to %d mC.\n", getpid(), CPU_TARGET_TEMP);
+	LOGI("\tSet polling interval to %dms.\n", getpid(), US_TO_MS(POLLING_INTERVAL_US));
+	LOGI("\tSet scaling target freq to %dMHz.\n", getpid(), KHZ_TO_MHZ(SCALING_TARGET_FREQ));
+	LOGI("\tSet cpu scaling step to %dMHz.\n", getpid(), KHZ_TO_MHZ(CPU_SCALING_STEP));
+	LOGI("\tSet cpu target temperature to %dmC.\n", getpid(), CPU_TARGET_TEMP);
 	LOGI("\tSet cpu hysteresis range to %d percent.\n", getpid(), (int)(HYSTERESIS_TEMP_PERCENT*100));
-	LOGI("\tCalculated cpu hysteresis deviation of %d mC.\n", getpid(), HYSTERESIS_TEMP_DEVIATION);
-	LOGI("\tCalculated cpu hysteresis lower limit of %d mC.\n", getpid(), HYSTERESIS_TEMP_LOWER_LIMIT);
-	LOGI("\tCalculated cpu hysteresis upper limit of %d mC.\n", getpid(), HYSTERESIS_TEMP_UPPER_LIMIT);
+	LOGI("\tCalculated temperature hysteresis deviation of %dmC.\n", getpid(), HYSTERESIS_TEMP_DEVIATION);
+	LOGI("\tCalculated temperature hysteresis lower limit of %dmC.\n", getpid(), HYSTERESIS_TEMP_LOWER_LIMIT);
+	LOGI("\tCalculated temperature hysteresis upper limit of %dmC.\n", getpid(), HYSTERESIS_TEMP_UPPER_LIMIT);
 	LOGI("\tSet cpus to throttle to %d.\n", getpid(), NUM_CORES);
 
 	if (FAN_CTRL_HWMON_SUBNODE != -1) {
