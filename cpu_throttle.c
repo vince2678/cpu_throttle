@@ -286,7 +286,7 @@ int decrease_fan_speed(int step)
 	return write_integer(fanctrl_filename, fan_speed);
 }
 
-void freq_max_worker(int core) {
+void worker(int core) {
 
 	/* buffers for storing file names */
 	char fanctrl_filename[MAX_BUF];
