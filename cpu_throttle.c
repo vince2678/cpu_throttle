@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <errno.h>
+#include <signal.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <getopt.h>
@@ -485,10 +486,55 @@ void parse_commmand_line(int argc, char *argv[]) {
 	}
 }
 
+void handler(int signal) {
+
+	char filename_buf[MINI_BUF];
+	char fanctrl_filename[MAX_BUF];
+	int i;
+
+	if (signal == SIGTERM) {
+		LOGI("Termination signal sent winding up...\n", getpid());
+		/* Format the temperature reading file. We add two because the
+		 * hwmon files are 1-indexed and the first one is that of the whole die. */
+
+		if (FAN_CTRL_HWMON_SUBNODE != -1) {
+			/* format the full file name */
+			sprintf(filename_buf, "pwm%d_enable", FAN_CTRL_HWMON_SUBNODE);
+			sprintf(fanctrl_filename, FAN_CTRL_DIR,
+					FAN_CTRL_HWMON_NODE, filename_buf);
+			/* disable manual fan control */
+			LOGI("Enabling automatic fan control...\n", getpid());
+			write_integer(fanctrl_filename, 0);
+		}
+
+		/* reset the cpu maximum frequency */
+		for (i = 0; i < NUM_CORES; i++) {
+			/* don't scale the virtual cores */
+			if ((i % 2) && (HT_AVAILABLE)) continue;
+
+			LOGI("Resetting cpu%d maximum frequency...\n", getpid(), i);
+			increase_max_freq(i, CPUINFO_MAX_FREQ);
+		}
+		/* exit */
+		exit(EXIT_SUCCESS);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	/* parse the command line */
 	parse_commmand_line(argc, argv);
+
+	/* initialise the sigaction struct */
+	struct sigaction sa;
+	sa.sa_handler = handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART;
+
+	/* set up signal handlers */
+	if (sigaction(SIGTERM, &sa, NULL) == -1) {
+		perror("fopen");
+	}
 
 	/* open the log file */
 	if (LOGGING == 1) {
