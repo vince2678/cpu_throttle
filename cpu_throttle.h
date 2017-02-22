@@ -188,7 +188,11 @@ int decrease_fan_speed(int step);
 
 /* Worker function which does the actual throttling.
  * Is intended to be run as a pthread. */
-void * worker(void* worker_num);
+void * cpu_worker(void* worker_num);
+
+/* Worker function which does the actual throttling.
+ * Is intended to be run as a pthread. */
+void * fan_worker(void* worker_num);
 
 /* Helper function to parse command line arguments from main */
 void parse_commmand_line(int argc, char *argv[]);

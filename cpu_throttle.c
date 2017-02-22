@@ -25,6 +25,9 @@ int main(int argc, char *argv[])
 	/* initialise the sigaction struct */
 	struct sigaction sa;
 
+	/* loop variables */
+	int i, rc;
+
 	/* Read sysfs interfaces and populate the throttle_settings
 	 * buffer with basic defaults. */
 	initialise_settings();
@@ -41,7 +44,7 @@ int main(int argc, char *argv[])
 	sa.sa_flags = SA_RESTART;
 
 	/*define the pthreads array */
-	pthread_t pthreads_arr[settings.num_cores];
+	pthread_t pthreads_arr[settings.num_cores+1];
 
 	/* set up signal handlers */
 	if (sigaction(SIGINT, &sa, NULL) == -1) {
@@ -167,36 +170,44 @@ int main(int argc, char *argv[])
 				settings.fan_hw_max_speed, settings.fan_hw_min_speed);
 	}
 
-	LOGI("Done reading/setting throttling parameters.\n", getpid());
-
 	/* start the scaling/throttling threads */
-	LOGI("Starting throttling threads...\n", getpid());
-	int i;
+	LOGI("Done reading/setting throttling parameters. "
+			"Starting throttling threads...\n", getpid());
+
+	/* start the worker threads */
+	int core;
 	for (i = 0; i < settings.num_cores; i++) {
-		/* don't scale the virtual cores */
-		if ((i % 2) && (settings.cpu_ht_available)) continue;
 
 		LOGI("Starting thread for cpu%d...\n", getpid(), i);
 
-		int rc = pthread_create(&(pthreads_arr[i]), NULL, worker, &i);
+		/* don't scale the virtual cores */
+		if ((i % 2) && (settings.cpu_ht_available)) {
+			core = i+1;
+		}
+		else {
+			core = i;
+		}
+
+		rc = pthread_create(&(pthreads_arr[i]), NULL, cpu_worker, &core);
 		if (rc) {
-			LOGE("Failed to start thread for cpu%d...\n", getpid(), i);
+			LOGE("Failed to start thread for cpu%d...\n",
+				getpid(), core);
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	/* reset the cpu maximum frequency */
-	for (i = 0; i < settings.num_cores; i++) {
-		/* don't scale the virtual cores */
-		if ((i % 2) && (settings.cpu_ht_available)) continue;
+	/* start the fan worker */
+	rc = pthread_create(&(pthreads_arr[i]), NULL, fan_worker, NULL);
+	if (rc) {
+		LOGE("Failed to start fan worker thread.\n", getpid());
+	}
 
-		LOGI("Waiting for cpu%d thread to finish...\n", getpid(), i);
+	/* wait for the worker threads to finish */
+	for (i = 0; i <= settings.num_cores; i++) {
+		LOGI("Waiting for worker%d thread to finish...\n", getpid(), i);
 		int rc = pthread_join(pthreads_arr[i], NULL);
 		if (rc) {
-			LOGE("Failed to join thread for cpu%d...\n", getpid(), i);
+			LOGE("Failed to join thread for worker%d...\n", getpid(), i);
 		}
-
-		LOGI("Resetting cpu%d maximum frequency...\n", getpid(), i);
-		reset_max_freq(i);
 	}
 }
