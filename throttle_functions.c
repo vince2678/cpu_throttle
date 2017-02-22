@@ -500,9 +500,9 @@ int read_configuration_file(void) {
 				getpid(), config_file_path);
 
 		/* open the file */
-		if ((fd = open(config_file_path, O_RDWR)) == -1) {
+		if ((fd = open(config_file_path, O_RDONLY)) == -1) {
 			perror("open");
-			LOGE("Failed to open config file %s for writing.\n",
+			LOGE("Failed to open config file %s for reading.\n",
 					getpid(), config_file_path);
 			return fd;
 		}
@@ -639,7 +639,8 @@ int write_configuration_file()
 	}
 
 	/* open the file */
-	if ((fd = open(config_file_path, O_RDWR)) == -1) {
+	if ((fd = open(config_file_path, O_CREAT|O_WRONLY,
+					S_IRUSR|S_IWUSR)) == -1) {
 		perror("open");
 		LOGE("Failed to open config file %s for writing.\n",
 				getpid(), config_file_path);

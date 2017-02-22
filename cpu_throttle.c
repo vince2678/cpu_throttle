@@ -35,9 +35,6 @@ int main(int argc, char *argv[])
 	/* parse the command line */
 	parse_commmand_line(argc, argv);
 
-	/* read a configuration file if one was passed */
-	read_configuration_file();
-
 	/* initialise the sigaction struct */
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
@@ -69,6 +66,9 @@ int main(int argc, char *argv[])
 
 	LOGI("Firing up...\n", getpid());
 	LOGI("\n",getpid());
+
+	/* read a configuration file if one was passed */
+	read_configuration_file();
 
 	/* check if the sysfs core temperature node exist */
 	if (settings.sysfs_coretemp_hwmon_node == -1) {
