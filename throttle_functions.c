@@ -495,6 +495,7 @@ int read_configuration_file(void) {
 	}
 	/* check if the file exists at that path */
 	if (stat(config_file_path, &stat_buf) != -1) {
+
 		// we found the node
 		LOGI("\tFound config file at %s.\n",
 				getpid(), config_file_path);

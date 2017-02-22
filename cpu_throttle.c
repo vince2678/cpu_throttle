@@ -51,18 +51,8 @@ int main(int argc, char *argv[])
 		perror("sigaction");
 	}
 
-	/* open the log file */
-	if (settings.logging_enabled == 1) {
-		if (!(log_file = fopen(settings.log_path, "a+"))) {
-			perror("fopen");
-			fprintf(stderr, "Could not open log file\n");
-			exit(EXIT_FAILURE);
-		}
-	}
-	else {
-		// print statements to stderr
-		log_file = stderr;
-	}
+	/* print statements to stderr for now */
+	log_file = stderr;
 
 	if (write_config) {
 		/* write to configuration file if one was passed */
@@ -70,12 +60,25 @@ int main(int argc, char *argv[])
 		write_configuration_file();
 		return 0;
 	}
+	else {
+		/* read a configuration file if one was passed */
+		read_configuration_file();
+	}
+
+	/* open the log file */
+	if (settings.logging_enabled) {
+		if (!(log_file = fopen(settings.log_path, "a+"))) {
+
+			perror("fopen");
+			fprintf(stderr, "Could not open log file\n");
+
+			/* print statements to stderr */
+			log_file = stderr;
+		}
+	}
 
 	LOGI("Firing up...\n", getpid());
 	LOGI("\n",getpid());
-
-	/* read a configuration file if one was passed */
-	read_configuration_file();
 
 	/* check if the sysfs core temperature node exist */
 	if (settings.sysfs_coretemp_hwmon_node == -1) {
