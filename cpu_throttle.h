@@ -58,6 +58,7 @@ struct throttle_settings settings;
 
 /* config file */
 char * config_file_path;
+int write_config;
 
 struct throttle_settings {
 	/* logging */

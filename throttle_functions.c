@@ -533,9 +533,10 @@ void initialise_settings(void) {
 
 	int i = 0, max_tries = 10;
 
-	/* initialise global pointers to NULL */
+	/* initialise global variables */
 	log_file = NULL;
 	config_file_path = NULL;
+	write_config = 0;
 
 	// initialise the hwmon global variables
 	settings.sysfs_coretemp_hwmon_node = -1;
@@ -682,6 +683,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 		{"minimum-fan-speed",	required_argument,       0, 'e' },
 		{"config",	required_argument,       0, 'o' },
 		{"cores",	required_argument,       0, 'c' },
+		{"write-config",	no_argument,       0, 'w' },
 		{"help",	no_argument,       0, 'h' },
 		{"verbose",	no_argument,       0, 'v' },
 		{0,         0,                 0,  0 }
@@ -694,6 +696,9 @@ void parse_commmand_line(int argc, char *argv[]) {
 		    case 'o':
 			config_file_path = malloc(MAX_BUF_SIZE);
 			strncpy(config_file_path, optarg, MAX_BUF_SIZE);
+			break;
+		    case 'w':
+			write_config=1;
 			break;
 		    case 'u':
 			settings.hysteresis_reset_threshold=atoi(optarg);
@@ -746,6 +751,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "  -u, --reset-threshold\t Number of intervals spent consecutively\n"
 					"\t\t\t in hysteresis before fan speed and cpu clock are reset.\n");
 			fprintf (stderr, "  -o, --config\t\t Path to read/write binary config.\n" );
+			fprintf (stderr, "  -w, --write-config\t\t Just save the new configuration and exit.\n" );
 			fprintf (stderr, "  -c, --cores\t\t Number of (physical) cores on the system.\n" );
 			fprintf (stderr, "  -l, --log\t\t Path to log file.\n" );
 			fprintf (stderr, "  -v, --verbose\t\t Print detailed throttling information.\n");
@@ -777,10 +783,6 @@ void handler(int signal) {
 		LOGI("[fan] Enabling automatic fan control...\n", getpid());
 		write_integer(fanctrl_file_path, 0);
 	}
-
-	/* write to configuration file if one was passed */
-	LOGI("Saving configuration...\n", getpid());
-	write_configuration_file();
 
 	/* reset the cpu maximum frequency */
 	for (i = 0; i < settings.num_cores; i++) {
