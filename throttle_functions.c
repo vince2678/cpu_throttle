@@ -735,21 +735,21 @@ void parse_commmand_line(int argc, char *argv[]) {
 		    default: 
 			fprintf (stderr, "Usage: %s [OPTION]\n",argv[0]);
 			fprintf (stderr, "\nOptional commands:\n");
-			fprintf (stderr, "  -i, --interval\ttime to wait before scaling again, in ms.\n" );
-			fprintf (stderr, "  -f, --freq\tMaximum frequency cpus can attain, in MHz.\n" );
-			fprintf (stderr, "  -s, --cpu-step\tscaling step, in MHz\n" );
+			fprintf (stderr, "  -i, --interval\t Time to wait before scaling again, in ms.\n" );
+			fprintf (stderr, "  -f, --freq\t\t Maximum frequency cpus can attain, in MHz.\n" );
+			fprintf (stderr, "  -s, --cpu-step\t Scaling step, in MHz\n" );
 			fprintf (stderr, "  -a, --fan-step\t Fan scaling step.\n");
-			fprintf (stderr, "  -t, --temp\tTarget temperature, in degrees.\n" );
+			fprintf (stderr, "  -t, --temp\t\t Target temperature, in degrees.\n" );
 			fprintf (stderr, "  -e, --minimum-fan-speed\t Minimum speed fan can reach.\n");
-			fprintf (stderr, "  -r, --hysteresis\tHysteresis range "
+			fprintf (stderr, "  -r, --hysteresis\t Hysteresis range "
 					"(< 51, in percent) as an integer.\n");
-			fprintf (stderr, "  -u, --reset-threshold\tNumber of intervals spent consecutively\n"
-					"\t\t in hysteresis before fan speed and cpu clock are reset.\n");
-			fprintf (stderr, "  -o, --config\tPath to read/write binary config.\n" );
-			fprintf (stderr, "  -c, --cores\tnumber of (physical) cores on the system.\n" );
-			fprintf (stderr, "  -l, --log\tPath to log file.\n" );
-			fprintf (stderr, "  -v, --verbose\tPrint detailed throttling information.\n");
-			fprintf (stderr, "  -h, --help\tprint this message.\n");
+			fprintf (stderr, "  -u, --reset-threshold\t Number of intervals spent consecutively\n"
+					"\t\t\t in hysteresis before fan speed and cpu clock are reset.\n");
+			fprintf (stderr, "  -o, --config\t\t Path to read/write binary config.\n" );
+			fprintf (stderr, "  -c, --cores\t\t Number of (physical) cores on the system.\n" );
+			fprintf (stderr, "  -l, --log\t\t Path to log file.\n" );
+			fprintf (stderr, "  -v, --verbose\t\t Print detailed throttling information.\n");
+			fprintf (stderr, "  -h, --help\t\t Print this message.\n");
 			exit (EXIT_FAILURE);
 		}
 	}
