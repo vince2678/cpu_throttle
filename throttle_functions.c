@@ -80,8 +80,10 @@ int reset_max_freq(int core)
 	/* format the full file name */
 	sprintf(filename, SCALING_DIR, core, "scaling_max_freq");
 
-	LOGI("\tResetting cpu %d speed to %d.\n", getpid(), core,
-			settings.cpuinfo_max_freq);
+	if (settings.verbose) {
+		LOGI("\t[cpu%d] Resetting speed ceiling to %d.\n",
+				getpid(), core, settings.cpuinfo_max_freq);
+	}
 
 	/* write the string to the file and return */
 	return write_integer(filename, settings.cpuinfo_max_freq);
@@ -105,11 +107,15 @@ int decrease_max_freq(int core, int step)
 	freq -= step;
 	if (freq < settings.cpuinfo_min_freq) {
 		freq = settings.cpuinfo_min_freq;
-		LOGI("\tDecreasing cpu%d speed ceiling to %dKHz.\n",
-			getpid(), core, freq);
+
+		/* log a message */
+		if (settings.verbose) {
+			LOGI("\t[cpu%d] Decreasing speed ceiling to %dKHz.\n",
+				getpid(), core, freq);
+		}
 	}
-	else {
-		LOGI("\tDecreasing cpu%d speed ceiling by %dKHz.\n",
+	else if (settings.verbose) {
+		LOGI("\t[cpu%d] Decreasing speed ceiling by %dKHz.\n",
 			getpid(), core, step);
 	}
 
@@ -135,11 +141,15 @@ int increase_max_freq(int core, int step)
 	freq += step;
 	if (freq > settings.cpu_max_freq) {
 		freq = settings.cpu_max_freq;
-		LOGI("\tIncreasing cpu%d speed ceiling to %dKHz.\n",
-			getpid(), core, freq);
+
+		/* log a message */
+		if (settings.verbose) {
+			LOGI("\t[cpu%d] Increasing speed ceiling to %dKHz.\n",
+				getpid(), core, freq);
+		}
 	}
-	else {
-		LOGI("\tIncreasing cpu%d speed ceiling by %dKHz.\n",
+	else if (settings.verbose) {
+		LOGI("\t[cpu%d] Increasing speed ceiling by %dKHz.\n",
 			getpid(), core, step);
 	}
 
@@ -163,8 +173,10 @@ int reset_fan_speed(void)
 	sprintf(file_path, FAN_CTRL_DIR,
 			settings.sysfs_fanctrl_hwmon_node, filename);
 
-	LOGI("\tResetting fan speed to %d.\n", getpid(),
-			settings.fan_min_speed);
+	if (settings.verbose) {
+		LOGI("\t[fan] Resetting fan speed to %d.\n", getpid(),
+				settings.fan_min_speed);
+	}
 
 	/* set the fan speed */
 	return write_integer(file_path, settings.fan_min_speed);
@@ -193,11 +205,14 @@ int increase_fan_speed(int step)
 	fan_speed += step;
 	if (fan_speed > settings.fan_hw_max_speed) {
 		fan_speed = settings.fan_hw_max_speed;
-		LOGI("\tIncreasing fan speed to %d.\n",
-			getpid(), fan_speed);
+
+		if (settings.verbose) {
+			LOGI("\t[fan] Increasing fan speed to %d.\n",
+				getpid(), fan_speed);
+		}
 	}
-	else {
-		LOGI("\tIncreasing fan speed by %d.\n",
+	else if (settings.verbose) {
+		LOGI("\t[fan] Increasing fan speed by %d.\n",
 			getpid(), step);
 	}
 	/* set the fan speed */
@@ -224,12 +239,16 @@ int decrease_fan_speed(int step)
 	/* determine the new fan speed */
 	fan_speed -= step;
 	if (fan_speed < settings.fan_min_speed) {
+
 		fan_speed = settings.fan_min_speed;
-		LOGI("\tDecreasing fan speed to %d.\n",
-			getpid(), fan_speed);
+
+		if (settings.verbose) {
+			LOGI("\t[fan] Decreasing fan speed to %d.\n",
+				getpid(), fan_speed);
+		}
 	}
-	else {
-		LOGI("\tDecreasing fan speed by %d.\n",
+	else if (settings.verbose) {
+		LOGI("\t[fan] Decreasing fan speed by %d.\n",
 			getpid(), step);
 	}
 	/* set the fan speed */
@@ -263,12 +282,18 @@ void * cpu_worker(void* worker_num) {
 
 		/* read the current temp of the core */
 		curr_temp = read_integer(temperature_file_path);
-		LOGI("\tCurrent temperature for cpu core %d is %dmC.\n",
-				getpid(), core, curr_temp);
+
+		if (settings.verbose) {
+			LOGI("\t[cpu%d] Current temperature is %dmC.\n",
+					getpid(), core, curr_temp);
+		}
 
 		if (curr_temp == -1) {
-			LOGE("\tCould not read cpu core %d temperature.\n",
-					getpid(), core);
+			if (settings.verbose) {
+					LOGE("\t[cpu%d] Could not read"
+						"cpu temperature.\n",
+							getpid(), core);
+			}
 			continue;
 		}
 
@@ -383,8 +408,10 @@ void * fan_worker(void* worker_num) {
 		curr_temp = read_integer(temperature_file_path);
 
 		if (curr_temp == -1) {
-			LOGE("\tCould not read cpu die temperature.\n",
-					getpid());
+			if (settings.verbose) {
+				LOGE("\tCould not read cpu die temperature.\n",
+						getpid());
+			}
 			continue;
 		}
 
@@ -595,6 +622,7 @@ void initialise_settings(void) {
 	settings.num_cores = 1;
 
 	/* disable logging by default */
+	settings.verbose = 0;
 	settings.logging_enabled = 0;
 }
 
@@ -649,18 +677,19 @@ void parse_commmand_line(int argc, char *argv[]) {
 		{"fan-step",	required_argument,       0, 'a' },
 		{"temp",	required_argument,       0, 't' },
 		{"log",	required_argument,       0, 'l' },
-		{"hsteresis",	required_argument,       0, 'r' },
+		{"hysteresis",	required_argument,       0, 'r' },
 		{"reset-threshold",	required_argument,       0, 'u' },
 		{"minimum-fan-speed",	required_argument,       0, 'e' },
 		{"config",	required_argument,       0, 'o' },
-		{"threading",	no_argument,       0, 'v' },
+		{"threading",	no_argument,       0, 'm' },
 		{"cores",	no_argument,       0, 'c' },
 		{"help",	no_argument,       0, 'h' },
+		{"verbose",	no_argument,       0, 'v' },
 		{0,         0,                 0,  0 }
 	};
 
 	/* read in the command line args if anything was passed */
-	while ( (opt = getopt_long(argc, argv, "i:f:s:a:c:t:l:r:e:u:hv",
+	while ( (opt = getopt_long(argc, argv, "i:f:s:a:c:t:l:r:e:u:hmv",
 					long_options, &optind)) != -1 ) {
 		switch (opt) {
 		    case 'o':
@@ -692,11 +721,14 @@ void parse_commmand_line(int argc, char *argv[]) {
 		    case 't':
 			settings.cpu_target_temperature=C_TO_MC(atoi(optarg));
 			break;
+		    case 'v':
+			settings.verbose = 1;
+			break;
 		    case 'l':
 			strncpy(settings.log_path, optarg, MAX_BUF_SIZE);
 			settings.logging_enabled = 1;
 			break;
-		    case 'v':
+		    case 'm':
 			settings.cpu_ht_available = 1;
 			break;
 		    case 'c':
@@ -712,7 +744,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "  -s, --cpu-step\tscaling step, in MHz\n" );
 			fprintf (stderr, "  -a, --fan-step\t Fan scaling step.\n");
 			fprintf (stderr, "  -t, --temp\tTarget temperature, in degrees.\n" );
-			fprintf (stderr, "  -v, --threading\tWhether threading is available or not. \n" );
+			fprintf (stderr, "  -m, --threading\tWhether threading is available or not. \n" );
 			fprintf (stderr, "  -e, --minimum-fan-speed\t Minimum speed fan can reach.\n");
 			fprintf (stderr, "  -r, --hysteresis\tHysteresis range "
 					"(< 51, in percent) as an integer.\n");
@@ -721,6 +753,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "  -o, --config\tPath to read/write binary config.\n" );
 			fprintf (stderr, "  -c, --cores\tnumber of (physical) cores on the system.\n" );
 			fprintf (stderr, "  -l, --log\tPath to log file.\n" );
+			fprintf (stderr, "  -v, --verbose\tPrint detailed throttling information.\n");
 			fprintf (stderr, "  -h, --help\tprint this message.\n");
 			exit (EXIT_FAILURE);
 		}
@@ -746,7 +779,7 @@ void handler(int signal) {
 				settings.sysfs_fanctrl_hwmon_node, filename);
 
 		/* disable manual fan control */
-		LOGI("Enabling automatic fan control...\n", getpid());
+		LOGI("[fan] Enabling automatic fan control...\n", getpid());
 		write_integer(fanctrl_file_path, 0);
 	}
 
@@ -760,7 +793,7 @@ void handler(int signal) {
 		/* don't scale the virtual cores */
 		if ((i % 2) && (settings.cpu_ht_available)) continue;
 
-		LOGI("Resetting cpu%d maximum frequency...\n",
+		LOGI("[cpu%d] Resetting maximum frequency...\n",
 				getpid(), i);
 
 		reset_max_freq(i);

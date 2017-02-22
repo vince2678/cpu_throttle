@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
 	}
 
 	LOGI("Firing up...\n", getpid());
+	LOGI("\n",getpid());
 
 	/* check if the sysfs core temperature node exist */
 	if (settings.sysfs_coretemp_hwmon_node == -1) {
@@ -121,6 +122,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* print some information about the values we set */
+	LOGI("\n",getpid());
+
 	LOGI("\tSet polling interval to %dms.\n",
 			getpid(), US_TO_MS(settings.polling_interval));
 
@@ -136,6 +139,10 @@ int main(int argc, char *argv[])
 	LOGI("\tSet cpu hysteresis range to %d percent.\n",
 			getpid(), (int)(settings.hysteresis_range*100));
 
+	LOGI("\tSet cpus to throttle to %d.\n", getpid(), settings.num_cores);
+
+	LOGI("\n",getpid());
+
 	LOGI("\tSet hysteresis threshold to %d intervals.\n",
 			getpid(), settings.hysteresis_reset_threshold);
 
@@ -148,7 +155,7 @@ int main(int argc, char *argv[])
 	LOGI("\tCalculated temperature hysteresis upper limit of %dmC.\n",
 			getpid(), settings.hysteresis_upper_limit);
 
-	LOGI("\tSet cpus to throttle to %d.\n", getpid(), settings.num_cores);
+	LOGI("\n",getpid());
 
 	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
 		// make sure an illegal target fan speed wasn't specified.
@@ -159,6 +166,8 @@ int main(int argc, char *argv[])
 			settings.fan_min_speed = settings.fan_hw_min_speed;
 		}
 
+		LOGI("\n",getpid());
+
 		LOGI("\tSet fan scaling step to %d.\n",
 				getpid(), settings.fan_scaling_step);
 
@@ -168,6 +177,7 @@ int main(int argc, char *argv[])
 		LOGI("\tSuccessfully read fan speed limits.\n"
 			"\t\tspeed_max: %d\t speed_min: %d\n", getpid(),
 				settings.fan_hw_max_speed, settings.fan_hw_min_speed);
+		LOGI("\n",getpid());
 	}
 
 	/* start the scaling/throttling threads */
@@ -204,10 +214,10 @@ int main(int argc, char *argv[])
 
 	/* wait for the worker threads to finish */
 	for (i = 0; i <= settings.num_cores; i++) {
-		LOGI("Waiting for worker%d thread to finish...\n", getpid(), i);
+		LOGI("[worker%d] Waiting for thread...\n", getpid(), i);
 		int rc = pthread_join(pthreads_arr[i], NULL);
 		if (rc) {
-			LOGE("Failed to join thread for worker%d...\n", getpid(), i);
+			LOGE("[worker%d] Failed to join thread.\n", getpid(), i);
 		}
 	}
 }

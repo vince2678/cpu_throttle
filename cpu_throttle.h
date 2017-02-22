@@ -63,6 +63,7 @@ struct throttle_settings {
 	/* logging */
 	char log_path[MAX_BUF_SIZE];
 	int logging_enabled;
+	int verbose;
 
 	/* hwmon sysfs interface info */
 	int sysfs_coretemp_hwmon_node;
