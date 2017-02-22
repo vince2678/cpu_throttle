@@ -590,7 +590,7 @@ void initialise_settings(void) {
 	settings.cpu_target_temperature = C_TO_MC(55);
 	settings.hysteresis_range = 0.1;
 	settings.hysteresis_reset_threshold = 100;
-	settings.fan_scaling_step = 10;
+	settings.fan_scaling_step = 2;
 	settings.cpu_ht_available = 0;
 	settings.num_cores = 1;
 
