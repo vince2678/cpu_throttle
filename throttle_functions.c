@@ -113,7 +113,8 @@ int reset_max_freq(int core)
 	/* format the full file name */
 	sprintf(filename, SCALING_DIR, core, "scaling_max_freq");
 
-	LOGI("\tResetting cpu %d speed to %d.\n", getpid(), core, settings.cpuinfo_max_freq);
+	LOGI("\tResetting cpu %d speed to %d.\n", getpid(), core,
+			settings.cpuinfo_max_freq);
 
 	/* write the string to the file and return */
 	return write_integer(filename, settings.cpuinfo_max_freq);
@@ -185,18 +186,21 @@ int increase_max_freq(int core, int step)
  * @return: 0 if succesful, -1 otherwise. */
 int reset_fan_speed(void)
 {
-	char fanctrl_filename[MAX_BUF_SIZE];
-	char filename_buf[MIN_BUF_SIZE];
+	char file_path[MAX_BUF_SIZE];
+	char filename[MIN_BUF_SIZE];
 
 	/* format the full file name */
-	sprintf(filename_buf, "pwm%d", settings.sysfs_fanctrl_hwmon_subnode);
-	sprintf(fanctrl_filename, FAN_CTRL_DIR,
-			settings.sysfs_fanctrl_hwmon_node, filename_buf);
+	sprintf(filename, "pwm%d",
+			settings.sysfs_fanctrl_hwmon_subnode);
 
-	LOGI("\tResetting fan speed to %d.\n", getpid(), settings.fan_min_speed);
+	sprintf(file_path, FAN_CTRL_DIR,
+			settings.sysfs_fanctrl_hwmon_node, filename);
+
+	LOGI("\tResetting fan speed to %d.\n", getpid(),
+			settings.fan_min_speed);
 
 	/* set the fan speed */
-	return write_integer(fanctrl_filename, settings.fan_min_speed);
+	return write_integer(file_path, settings.fan_min_speed);
 }
 
 /* Increase the fan speed by step
@@ -204,17 +208,19 @@ int reset_fan_speed(void)
  * @return: 0 if succesful, -1 otherwise. */
 int increase_fan_speed(int step)
 {
-	char fanctrl_filename[MAX_BUF_SIZE];
-	char filename_buf[MIN_BUF_SIZE];
+	char file_path[MAX_BUF_SIZE];
+	char filename[MIN_BUF_SIZE];
 	int fan_speed;
 
 	/* format the full file name */
-	sprintf(filename_buf, "pwm%d", settings.sysfs_fanctrl_hwmon_subnode);
-	sprintf(fanctrl_filename, FAN_CTRL_DIR,
-			settings.sysfs_fanctrl_hwmon_node, filename_buf);
+	sprintf(filename, "pwm%d",
+			settings.sysfs_fanctrl_hwmon_subnode);
+
+	sprintf(file_path, FAN_CTRL_DIR,
+			settings.sysfs_fanctrl_hwmon_node, filename);
 
 	/* read the current fan speed */
-	fan_speed = read_integer(fanctrl_filename);
+	fan_speed = read_integer(file_path);
 
 	/* determine the new fan speed */
 	fan_speed += step;
@@ -228,7 +234,7 @@ int increase_fan_speed(int step)
 			getpid(), step);
 	}
 	/* set the fan speed */
-	return write_integer(fanctrl_filename, fan_speed);
+	return write_integer(file_path, fan_speed);
 }
 
 /* Decrease the fan speed by step
@@ -236,17 +242,17 @@ int increase_fan_speed(int step)
  * @return: 0 if succesful, -1 otherwise. */
 int decrease_fan_speed(int step)
 {
-	char filename_buf[MIN_BUF_SIZE];
-	char fanctrl_filename[MAX_BUF_SIZE];
+	char file_path[MAX_BUF_SIZE];
+	char filename[MIN_BUF_SIZE];
 	int fan_speed;
 
 	/* format the full file name */
-	sprintf(filename_buf, "pwm%d", settings.sysfs_fanctrl_hwmon_subnode);
-	sprintf(fanctrl_filename, FAN_CTRL_DIR,
-			settings.sysfs_fanctrl_hwmon_node, filename_buf);
+	sprintf(filename, "pwm%d", settings.sysfs_fanctrl_hwmon_subnode);
+	sprintf(file_path, FAN_CTRL_DIR,
+			settings.sysfs_fanctrl_hwmon_node, filename);
 
 	/* read the current fan speed */
-	fan_speed = read_integer(fanctrl_filename);
+	fan_speed = read_integer(file_path);
 
 	/* determine the new fan speed */
 	fan_speed -= step;
@@ -260,7 +266,7 @@ int decrease_fan_speed(int step)
 			getpid(), step);
 	}
 	/* set the fan speed */
-	return write_integer(fanctrl_filename, fan_speed);
+	return write_integer(file_path, fan_speed);
 }
 
 /* Worker function which does the actual throttling.
@@ -268,7 +274,7 @@ int decrease_fan_speed(int step)
 void * worker(void* worker_num) {
 
 	/* buffers for storing file names */
-	char fanctrl_filename[MAX_BUF_SIZE];
+	char fanctrl_file_path[MAX_BUF_SIZE];
 	char temperature_filename[MAX_BUF_SIZE];
 
 	/* general filename buffer. */
@@ -283,15 +289,18 @@ void * worker(void* worker_num) {
 	/* Format the temperature reading file. We add two because the
 	 * hwmon files are 1-indexed and the first one is that of the whole die. */
 	sprintf(filename_buf, "temp%d_input", core+2);
-	sprintf(temperature_filename, CT_HWMON_DIR, settings.sysfs_coretemp_hwmon_node, filename_buf);
+	sprintf(temperature_filename, CT_HWMON_DIR,
+			settings.sysfs_coretemp_hwmon_node, filename_buf);
 
 	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
 		/* format the full file name */
-		sprintf(filename_buf, "pwm%d_enable", settings.sysfs_fanctrl_hwmon_subnode);
-		sprintf(fanctrl_filename, FAN_CTRL_DIR,
+		sprintf(filename_buf, "pwm%d_enable",
+				settings.sysfs_fanctrl_hwmon_subnode);
+
+		sprintf(fanctrl_file_path, FAN_CTRL_DIR,
 				settings.sysfs_fanctrl_hwmon_node, filename_buf);
 		/* enable manual fan control */
-		write_integer(fanctrl_filename, 1);
+		write_integer(fanctrl_file_path, 1);
 	}
 
 	/* let's loop forever */
@@ -301,9 +310,12 @@ void * worker(void* worker_num) {
 
 		/* read the current temp of the core */
 		curr_temp = read_integer(temperature_filename);
-		LOGI("\tCurrent temperature for cpu core %d is %dmC.\n", getpid(), core, curr_temp);
+		LOGI("\tCurrent temperature for cpu core %d is %dmC.\n",
+				getpid(), core, curr_temp);
+
 		if (curr_temp == -1) {
-			LOGE("\tCould not read cpu core %d temperature.\n", getpid(), core);
+			LOGE("\tCould not read cpu core %d temperature.\n",
+					getpid(), core);
 			continue;
 		}
 		else if (!curr_temp) { // initialise prev_temp
@@ -311,7 +323,8 @@ void * worker(void* worker_num) {
 		}
 
 		/*case 1: temp is in hysteresis range of target */
-		if ((curr_temp >= settings.hysteresis_lower_limit)  && (curr_temp <= settings.hysteresis_upper_limit)) {
+		if ((curr_temp >= settings.hysteresis_lower_limit)
+				&& (curr_temp <= settings.hysteresis_upper_limit)) {
 
 			/* update the hysteresis counter */
 			intervals_in_hysteresis += 1;
@@ -326,7 +339,7 @@ void * worker(void* worker_num) {
 					reset_fan_speed();
 				}
 				/* reset the speed to the settings.cpu_max_freq */
-				increase_max_freq(core, (settings.cpuinfo_max_freq));
+				increase_max_freq(core, settings.cpuinfo_max_freq);
 			}
 		}
 		/*case 2: temp is below the (lower) hysteresis range of target */
@@ -495,14 +508,20 @@ void initialise_settings(void) {
 		}
 	}
 
-	/* set the fan speeds */
+	/* read and set the fan speeds */
 	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
 		char general_buf[MIN_BUF_SIZE];
-		sprintf(general_buf, "fan%d_speed_max", settings.sysfs_fanctrl_hwmon_subnode);
-		sprintf(filename, FAN_CTRL_DIR, settings.sysfs_fanctrl_hwmon_node, general_buf);
+
+		sprintf(general_buf, "fan%d_speed_max",
+				settings.sysfs_fanctrl_hwmon_subnode);
+		sprintf(filename, FAN_CTRL_DIR,
+				settings.sysfs_fanctrl_hwmon_node, general_buf);
 		settings.fan_hw_max_speed = read_integer(filename);
-		sprintf(general_buf, "fan%d_min", settings.sysfs_fanctrl_hwmon_subnode);
-		sprintf(filename, FAN_CTRL_DIR, settings.sysfs_fanctrl_hwmon_node, general_buf);
+
+		sprintf(general_buf, "fan%d_min",
+				settings.sysfs_fanctrl_hwmon_subnode);
+		sprintf(filename, FAN_CTRL_DIR,
+				settings.sysfs_fanctrl_hwmon_node, general_buf);
 		settings.fan_hw_min_speed = read_integer(filename);
 	}
 
@@ -583,7 +602,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 		{"fan-step",	required_argument,       0, 'a' },
 		{"temp",	required_argument,       0, 't' },
 		{"log",	required_argument,       0, 'l' },
-		{"hysteresis",	required_argument,       0, 'r' },
+		{"hsteresis",	required_argument,       0, 'r' },
 		{"reset-threshold",	required_argument,       0, 'u' },
 		{"minimum-fan-speed",	required_argument,       0, 'e' },
 		{"config",	required_argument,       0, 'o' },
@@ -594,7 +613,8 @@ void parse_commmand_line(int argc, char *argv[]) {
 	};
 
 	/* read in the command line args if anything was passed */
-	while ( (opt = getopt_long (argc, argv, "i:f:s:a:c:t:l:r:e:u:hv", long_options, &optind)) != -1 ) {
+	while ( (opt = getopt_long(argc, argv, "i:f:s:a:c:t:l:r:e:u:hv",
+					long_options, &optind)) != -1 ) {
 		switch (opt) {
 		    case 'o':
 			config_file_path = malloc(MAX_BUF_SIZE);
@@ -610,7 +630,8 @@ void parse_commmand_line(int argc, char *argv[]) {
 			settings.fan_min_speed=atoi(optarg);
 			break;
 		    case 'r':
-			settings.hysteresis_range=(float) (strtol(optarg, NULL, 10) / 100.0);
+			settings.hysteresis_range=
+				(float)(strtol(optarg, NULL, 10) / 100.0);
 			break;
 		    case 'i':
 			settings.polling_interval=MS_TO_US(atoi(optarg));
@@ -646,9 +667,10 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "  -t, --temp\tTarget temperature, in degrees.\n" );
 			fprintf (stderr, "  -v, --threading\tWhether threading is available or not. \n" );
 			fprintf (stderr, "  -e, --minimum-fan-speed\t Minimum speed fan can reach.\n");
-			fprintf (stderr, "  -r, --hysteresis\tHysteresis range (< 51, in percent) as an integer.\n");
-			fprintf (stderr, "  -u, --reset-threshold\tNumber of intervals spent consecutively in \n"
-					"hysteresis before fan speed and cpu clock are reset.\n");
+			fprintf (stderr, "  -r, --hysteresis\tHysteresis range "
+					"(< 51, in percent) as an integer.\n");
+			fprintf (stderr, "  -u, --reset-threshold\tNumber of intervals spent consecutively\n"
+					"\t\t in hysteresis before fan speed and cpu clock are reset.\n");
 			fprintf (stderr, "  -o, --config\tPath to read/write binary config.\n" );
 			fprintf (stderr, "  -c, --cores\tnumber of (physical) cores on the system.\n" );
 			fprintf (stderr, "  -l, --log\tPath to log file.\n" );
@@ -662,20 +684,20 @@ void parse_commmand_line(int argc, char *argv[]) {
  * signals and reset hardware settings to original. */
 void handler(int signal) {
 
-	char filename_buf[MIN_BUF_SIZE];
-	char fanctrl_filename[MAX_BUF_SIZE];
+	char filename[MIN_BUF_SIZE];
+	char fanctrl_file_path[MAX_BUF_SIZE];
 	int i;
 
 	LOGI("Termination signal sent. Winding up...\n", getpid());
 
 	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
 		/* format the full file name */
-		sprintf(filename_buf, "pwm%d_enable", settings.sysfs_fanctrl_hwmon_subnode);
-		sprintf(fanctrl_filename, FAN_CTRL_DIR,
-				settings.sysfs_fanctrl_hwmon_node, filename_buf);
+		sprintf(filename, "pwm%d_enable", settings.sysfs_fanctrl_hwmon_subnode);
+		sprintf(fanctrl_file_path, FAN_CTRL_DIR,
+				settings.sysfs_fanctrl_hwmon_node, filename);
 		/* disable manual fan control */
 		LOGI("Enabling automatic fan control...\n", getpid());
-		write_integer(fanctrl_filename, 0);
+		write_integer(fanctrl_file_path, 0);
 	}
 
 	/* write to configuration file if one was passed */
@@ -688,7 +710,9 @@ void handler(int signal) {
 		/* don't scale the virtual cores */
 		if ((i % 2) && (settings.cpu_ht_available)) continue;
 
-		LOGI("Resetting cpu%d maximum frequency...\n", getpid(), i);
+		LOGI("Resetting cpu%d maximum frequency...\n",
+				getpid(), i);
+
 		reset_max_freq(i);
 	}
 	/* exit */

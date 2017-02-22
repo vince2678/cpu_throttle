@@ -93,9 +93,12 @@ int main(int argc, char *argv[])
 	}
 
 	/* calculate the hysteresis range */
-	settings.hysteresis_deviation = (((float) settings.cpu_target_temperature) * settings.hysteresis_range);
-	settings.hysteresis_upper_limit = settings.cpu_target_temperature + settings.hysteresis_deviation;
-	settings.hysteresis_lower_limit = settings.cpu_target_temperature - settings.hysteresis_deviation;
+	settings.hysteresis_deviation =
+		(((float) settings.cpu_target_temperature) * settings.hysteresis_range);
+	settings.hysteresis_upper_limit =
+		settings.cpu_target_temperature + settings.hysteresis_deviation;
+	settings.hysteresis_lower_limit =
+		settings.cpu_target_temperature - settings.hysteresis_deviation;
 
 	/* check if we read the cpu scaling limits properly */
 	if ((settings.cpuinfo_min_freq == -1) || (settings.cpuinfo_min_freq == -1)) {
@@ -115,15 +118,33 @@ int main(int argc, char *argv[])
 	}
 
 	/* print some information about the values we set */
-	LOGI("\tSet polling interval to %dms.\n", getpid(), US_TO_MS(settings.polling_interval));
-	LOGI("\tSet maximum scaling freq to %dMHz.\n", getpid(), KHZ_TO_MHZ(settings.cpu_max_freq));
-	LOGI("\tSet cpu scaling step to %dMHz.\n", getpid(), KHZ_TO_MHZ(settings.cpu_scaling_step));
-	LOGI("\tSet cpu target temperature to %dmC.\n", getpid(), settings.cpu_target_temperature);
-	LOGI("\tSet cpu hysteresis range to %d percent.\n", getpid(), (int)(settings.hysteresis_range*100));
-	LOGI("\tSet hysteresis threshold to %d intervals.\n", getpid(), settings.hysteresis_reset_threshold);
-	LOGI("\tCalculated temperature hysteresis deviation of %dmC.\n", getpid(), settings.hysteresis_deviation);
-	LOGI("\tCalculated temperature hysteresis lower limit of %dmC.\n", getpid(), settings.hysteresis_lower_limit);
-	LOGI("\tCalculated temperature hysteresis upper limit of %dmC.\n", getpid(), settings.hysteresis_upper_limit);
+	LOGI("\tSet polling interval to %dms.\n",
+			getpid(), US_TO_MS(settings.polling_interval));
+
+	LOGI("\tSet maximum scaling freq to %dMHz.\n",
+			getpid(), KHZ_TO_MHZ(settings.cpu_max_freq));
+
+	LOGI("\tSet cpu scaling step to %dMHz.\n",
+			getpid(), KHZ_TO_MHZ(settings.cpu_scaling_step));
+
+	LOGI("\tSet cpu target temperature to %dmC.\n",
+			getpid(), settings.cpu_target_temperature);
+
+	LOGI("\tSet cpu hysteresis range to %d percent.\n",
+			getpid(), (int)(settings.hysteresis_range*100));
+
+	LOGI("\tSet hysteresis threshold to %d intervals.\n",
+			getpid(), settings.hysteresis_reset_threshold);
+
+	LOGI("\tCalculated temperature hysteresis deviation of %dmC.\n",
+			getpid(), settings.hysteresis_deviation);
+
+	LOGI("\tCalculated temperature hysteresis lower limit of %dmC.\n",
+			getpid(), settings.hysteresis_lower_limit);
+
+	LOGI("\tCalculated temperature hysteresis upper limit of %dmC.\n",
+			getpid(), settings.hysteresis_upper_limit);
+
 	LOGI("\tSet cpus to throttle to %d.\n", getpid(), settings.num_cores);
 
 	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
@@ -135,8 +156,12 @@ int main(int argc, char *argv[])
 			settings.fan_min_speed = settings.fan_hw_min_speed;
 		}
 
-		LOGI("\tSet fan scaling step to %d.\n", getpid(), settings.fan_scaling_step);
-		LOGI("\tSet fan minimum speed to %d.\n", getpid(), settings.fan_min_speed);
+		LOGI("\tSet fan scaling step to %d.\n",
+				getpid(), settings.fan_scaling_step);
+
+		LOGI("\tSet fan minimum speed to %d.\n",
+				getpid(), settings.fan_min_speed);
+
 		LOGI("\tSuccessfully read fan speed limits.\n"
 			"\t\tspeed_max: %d\t speed_min: %d\n", getpid(),
 				settings.fan_hw_max_speed, settings.fan_hw_min_speed);
