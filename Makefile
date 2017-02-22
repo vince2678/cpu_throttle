@@ -5,6 +5,7 @@ SCALING_DIR = '"/sys/devices/system/cpu/cpu%d/cpufreq/%s"'
 
 NAME = cpu_throttle
 BINARY_DIR = /usr/bin
+SYSTEMD_UNIT_DIR = /etc/systemd/system
 
 CFLAGS = -Wall -Werror -g
 EXTRA_LINKS = -lm -pthread
@@ -16,6 +17,8 @@ all: $(NAME)
 
 install: $(NAME)
 	cp $(NAME) $(BINARY_DIR)/$(NAME)
+	cp $(NAME).service $(SYSTEMD_UNIT_DIR)/$(NAME).service
+	mkdir /etc/$(NAME)
 	chmod +x $(BINARY_DIR)/$(NAME)
 
 $(NAME): throttle_functions.o $(NAME).o $(NAME).h
@@ -25,7 +28,7 @@ $(NAME): throttle_functions.o $(NAME).o $(NAME).h
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $^ -c
 
 uninstall:
-	rm $(BINARY_DIR)/$(NAME)
+	rm -f $(BINARY_DIR)/$(NAME) $(SYSTEMD_UNIT_DIR)/$(NAME).service
 
 clean:
 	rm -f *.o $(NAME)

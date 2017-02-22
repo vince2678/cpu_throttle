@@ -1,0 +1,11 @@
+[Unit]
+Description=Keeps the system cool
+After=asus-fan-symlink.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cpu_throttle -o /etc/cpu_throttle/cpu_throttle.dat
+ExecStop=/bin/kill -SIGTERM $MAINPID
+
+[Install]
+WantedBy=multi-user.target
