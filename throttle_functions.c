@@ -69,39 +69,6 @@ int write_integer(const char* filename, int value)
 	return 0;
 }
 
-/* Write out_str to the file at filename.
- *
- * @return: 0 if succesful, -1 otherwise. */
-int write_string(const char* filename, const char* out_str)
-{
-	int fd;
-
-	/* open the file */
-	if ((fd = open(filename, O_RDWR)) == -1) {
-		perror("open");
-		LOGE("%s\n", getpid(), strerror(errno));
-		return -1;
-	}
-	/* write the string to the file */
-	dprintf(fd, "%s", out_str);
-	close(fd);
-	return 0;
-}
-
-/* Set the scaling governor on cpu core to governor
- *
- * @return: 0 if succesful, -1 otherwise. */
-int set_governor(int core, const char* governor)
-{
-	char filename[MAX_BUF_SIZE];
-
-	/* format the full file name */
-	sprintf(filename, SCALING_DIR, core, "scaling_governor");
-
-	/* write the string to the file */
-	return write_string(filename, governor);
-}
-
 /* Reset the maximum frequency on cpu core to the
  * maximum defined in sysfs
  *

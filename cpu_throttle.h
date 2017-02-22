@@ -142,16 +142,6 @@ int read_integer(const char* filename);
  * @return: 0 if succesful, -1 otherwise. */
 int write_integer(const char* filename, int value);
 
-/* Write out_str to the file at filename.
- *
- * @return: 0 if succesful, -1 otherwise. */
-int write_string(const char* filename, const char* out_str);
-
-/* Set the scaling governor on cpu core to governor
- *
- * @return: 0 if succesful, -1 otherwise. */
-int set_governor(int core, const char* governor);
-
 /* Reset the maximum frequency on cpu core to the
  * maximum defined in sysfs
  *
