@@ -35,13 +35,6 @@ int main(int argc, char *argv[])
 	/* parse the command line */
 	parse_commmand_line(argc, argv);
 
-	if (write_config) {
-		/* write to configuration file if one was passed */
-		LOGI("Saving configuration...\n", getpid());
-		write_configuration_file();
-		return 0;
-	}
-
 	/* initialise the sigaction struct */
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
@@ -69,6 +62,13 @@ int main(int argc, char *argv[])
 	else {
 		// print statements to stderr
 		log_file = stderr;
+	}
+
+	if (write_config) {
+		/* write to configuration file if one was passed */
+		LOGI("Saving configuration...\n", getpid());
+		write_configuration_file();
+		return 0;
 	}
 
 	LOGI("Firing up...\n", getpid());
