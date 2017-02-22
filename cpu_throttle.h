@@ -157,7 +157,6 @@ int increase_max_freq(int core, int step);
 
 /* Reset the fan speed to the
  * (user defined) minimum fan speed.
-
  *
  * @return: 0 if succesful, -1 otherwise. */
 int reset_fan_speed(void);
