@@ -5,6 +5,7 @@ After=asus-fan-symlink.service
 [Service]
 Type=simple
 ExecStart=/usr/bin/cpu_throttle -o /etc/cpu_throttle/cpu_throttle.dat
+ExecReload=/bin/kill -SIGHUP $MAINPID
 ExecStop=/bin/kill -SIGTERM $MAINPID
 
 [Install]

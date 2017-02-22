@@ -18,7 +18,7 @@ all: $(NAME)
 install: $(NAME)
 	cp $(NAME) $(BINARY_DIR)/$(NAME)
 	cp $(NAME).service $(SYSTEMD_UNIT_DIR)/$(NAME).service
-	mkdir /etc/$(NAME)
+	mkdir -p /etc/$(NAME)
 	chmod +x $(BINARY_DIR)/$(NAME)
 
 $(NAME): throttle_functions.o $(NAME).o $(NAME).h

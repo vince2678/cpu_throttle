@@ -197,6 +197,9 @@ int read_configuration_file();
  * @return: 0 if succesful, -1 otherwise. */
 int write_configuration_file();
 
+/* Verifies taht settings input are valid */
+void validate_settings();
+
 /* Read sysfs interfaces and populate the
  * throttle_settings buffer with basic defaults. */
 void initialise_settings();

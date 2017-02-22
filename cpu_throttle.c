@@ -50,6 +50,9 @@ int main(int argc, char *argv[])
 	if (sigaction(SIGTERM, &sa, NULL) == -1) {
 		perror("sigaction");
 	}
+	if (sigaction(SIGHUP, &sa, NULL) == -1) {
+		perror("sigaction");
+	}
 
 	/* print statements to stderr for now */
 	log_file = stderr;
@@ -64,6 +67,9 @@ int main(int argc, char *argv[])
 		/* read a configuration file if one was passed */
 		read_configuration_file();
 	}
+
+	/* validate the settings read */
+	validate_settings();
 
 	/* open the log file */
 	if (settings.logging_enabled) {
@@ -80,15 +86,8 @@ int main(int argc, char *argv[])
 	LOGI("Firing up...\n", getpid());
 	LOGI("\n",getpid());
 
-	/* check if the sysfs core temperature node exist */
-	if (settings.sysfs_coretemp_hwmon_node == -1) {
-		LOGE("\tCould not find core temp hwmon directory.\n", getpid());
-		exit(EXIT_FAILURE);
-	}
-	else {
-		LOGI("\tFound cpu core temp hwmon node at %d.\n",
-				getpid(), settings.sysfs_coretemp_hwmon_node);
-	}
+	LOGI("\tFound cpu core temp hwmon node at %d.\n",
+			getpid(), settings.sysfs_coretemp_hwmon_node);
 
 	/* check if the sysfs fan control node exist */
 	if (settings.sysfs_fanctrl_hwmon_subnode == -1) {
@@ -100,36 +99,10 @@ int main(int argc, char *argv[])
 				getpid(), settings.sysfs_fanctrl_hwmon_subnode);
 	}
 
-	/* set the target speed to the hardware minimum if
-	 * not already set. */
-	if (settings.fan_min_speed == -1) {
-		settings.fan_min_speed = settings.fan_hw_min_speed;
-	}
-
-	/* calculate the hysteresis range */
-	settings.hysteresis_deviation =
-		(((float) settings.cpu_target_temperature) * settings.hysteresis_range);
-	settings.hysteresis_upper_limit =
-		settings.cpu_target_temperature + settings.hysteresis_deviation;
-	settings.hysteresis_lower_limit =
-		settings.cpu_target_temperature - settings.hysteresis_deviation;
-
-	/* check if we read the cpu scaling limits properly */
-	if ((settings.cpuinfo_min_freq == -1) || (settings.cpuinfo_min_freq == -1)) {
-		LOGE("\tCould not read cpu scaling limits.\n", getpid());
-		exit(EXIT_FAILURE);
-	}
-	else {
-		LOGI("\tSuccessfully read cpu scaling limits.\n"
-			"\t\t\tmax_freq:%dMHz min_freq:%dMHz\n", getpid(),
-				KHZ_TO_MHZ(settings.cpuinfo_max_freq),
-				KHZ_TO_MHZ(settings.cpuinfo_min_freq));
-	}
-
-	// make sure an illegal target frequency wasn't specified.
-	if (settings.cpu_max_freq > settings.cpuinfo_max_freq ) {
-		settings.cpu_max_freq = settings.cpuinfo_max_freq;
-	}
+	LOGI("\tSuccessfully read cpu scaling limits.\n"
+		"\t\t\tmax_freq:%dMHz min_freq:%dMHz\n", getpid(),
+			KHZ_TO_MHZ(settings.cpuinfo_max_freq),
+			KHZ_TO_MHZ(settings.cpuinfo_min_freq));
 
 	/* print some information about the values we set */
 	LOGI("\n",getpid());
@@ -168,13 +141,6 @@ int main(int argc, char *argv[])
 	LOGI("\n",getpid());
 
 	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
-		// make sure an illegal target fan speed wasn't specified.
-		if (settings.fan_min_speed > settings.fan_hw_max_speed) {
-			settings.fan_min_speed = settings.fan_hw_max_speed;
-		}
-		else if (settings.fan_min_speed < settings.fan_hw_min_speed) {
-			settings.fan_min_speed = settings.fan_hw_min_speed;
-		}
 
 		LOGI("\n",getpid());
 

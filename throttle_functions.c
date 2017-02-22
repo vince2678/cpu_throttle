@@ -762,6 +762,51 @@ void parse_commmand_line(int argc, char *argv[]) {
 	}
 }
 
+/* Verifies taht settings input are valid */
+void validate_settings(void) {
+
+	/* calculate the hysteresis range */
+	settings.hysteresis_deviation =
+		(((float) settings.cpu_target_temperature) * settings.hysteresis_range);
+	settings.hysteresis_upper_limit =
+		settings.cpu_target_temperature + settings.hysteresis_deviation;
+	settings.hysteresis_lower_limit =
+		settings.cpu_target_temperature - settings.hysteresis_deviation;
+
+	// make sure an illegal target frequency wasn't specified.
+	if (settings.cpu_max_freq > settings.cpuinfo_max_freq ) {
+		settings.cpu_max_freq = settings.cpuinfo_max_freq;
+	}
+
+	/* set the target speed to the hardware minimum if
+	 * not already set. */
+	if (settings.fan_min_speed == -1) {
+		settings.fan_min_speed = settings.fan_hw_min_speed;
+	}
+
+	/* check if the sysfs core temperature node exist */
+	if (settings.sysfs_coretemp_hwmon_node == -1) {
+		LOGE("\tCould not find core temp hwmon directory.\n", getpid());
+		exit(EXIT_FAILURE);
+	}
+
+	/* check if we read the cpu scaling limits properly */
+	if ((settings.cpuinfo_min_freq == -1) || (settings.cpuinfo_min_freq == -1)) {
+		LOGE("\tCould not read cpu scaling limits.\n", getpid());
+		exit(EXIT_FAILURE);
+	}
+
+	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
+		// make sure an illegal target fan speed wasn't specified.
+		if (settings.fan_min_speed > settings.fan_hw_max_speed) {
+			settings.fan_min_speed = settings.fan_hw_max_speed;
+		}
+		else if (settings.fan_min_speed < settings.fan_hw_min_speed) {
+			settings.fan_min_speed = settings.fan_hw_min_speed;
+		}
+	}
+}
+
 /* Signal handler function to handle termination
  * signals and reset hardware settings to original. */
 void handler(int signal) {
@@ -769,30 +814,43 @@ void handler(int signal) {
 	char filename[MIN_BUF_SIZE];
 	int i;
 
-	LOGI("Termination signal sent. Winding up...\n", getpid());
+	if ((signal == SIGTERM) || (signal == SIGINT)) {
+		LOGI("Termination signal sent. Winding up...\n", getpid());
 
-	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
+		if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
 
-		char fanctrl_file_path[MAX_BUF_SIZE];
+			char fanctrl_file_path[MAX_BUF_SIZE];
 
-		/* format the full file name */
-		sprintf(filename, "pwm%d_enable", settings.sysfs_fanctrl_hwmon_subnode);
-		sprintf(fanctrl_file_path, FAN_CTRL_DIR,
-				settings.sysfs_fanctrl_hwmon_node, filename);
+			/* format the full file name */
+			sprintf(filename, "pwm%d_enable",
+					settings.sysfs_fanctrl_hwmon_subnode);
 
-		/* disable manual fan control */
-		LOGI("[fan] Enabling automatic fan control...\n", getpid());
-		write_integer(fanctrl_file_path, 0);
+			sprintf(fanctrl_file_path, FAN_CTRL_DIR,
+					settings.sysfs_fanctrl_hwmon_node, filename);
+
+			/* disable manual fan control */
+			LOGI("[fan] Enabling automatic fan control...\n", getpid());
+			write_integer(fanctrl_file_path, 0);
+		}
+
+		/* reset the cpu maximum frequency */
+		for (i = 0; i < settings.num_cores; i++) {
+
+			LOGI("[cpu%d] Resetting maximum frequency...\n",
+					getpid(), i);
+
+			reset_max_freq(i);
+		}
+		exit(EXIT_SUCCESS);
 	}
+	else if (signal == SIGHUP) {
+		LOGI("Reloading configuration...\n", getpid());
 
-	/* reset the cpu maximum frequency */
-	for (i = 0; i < settings.num_cores; i++) {
+		/* read a configuration file if one was passed */
+		read_configuration_file();
 
-		LOGI("[cpu%d] Resetting maximum frequency...\n",
-				getpid(), i);
-
-		reset_max_freq(i);
+		/* validate the settings read */
+		validate_settings();
 	}
-	exit(EXIT_SUCCESS);
 }
 
