@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 				NULL, cpu_worker, &(core[i]));
 		if (rc) {
 			LOGE("Failed to start thread for cpu%d...\n",
-				getpid(), core);
+				getpid(), core[i]);
 			exit(EXIT_FAILURE);
 		}
 	}
