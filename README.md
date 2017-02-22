@@ -28,8 +28,7 @@ The tool does not provide a systemd service or an init script, but can be easily
   -t, --temp		 Target temperature, in degrees.
   -e, --minimum-fan-speed	 Minimum speed fan can reach.
   -r, --hysteresis	 Hysteresis range (< 51, in percent) as an integer.
-  -u, --reset-threshold	 Number of intervals spent consecutively
-			 in hysteresis before fan speed and cpu clock are reset.
+  -u, --reset-threshold	 Number of intervals spent consecutively in hysteresis before fan speed and cpu clock are reset.
   -o, --config		 Path to read/write binary config.
   -c, --cores		 Number of (physical) cores on the system.
   -l, --log		 Path to log file.
