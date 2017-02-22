@@ -674,7 +674,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 	static struct option long_options[] = {
 		/* *name ,  has_arg,           *flag,  val */
 		{"interval",	required_argument,       0, 'i' },
-		{"freq",	required_argument,       0, 'f' },
+		{"max-freq",	required_argument,       0, 'f' },
 		{"cpu-step",	required_argument,       0, 's' },
 		{"fan-step",	required_argument,       0, 'a' },
 		{"temp",	required_argument,       0, 't' },
@@ -742,7 +742,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "Usage: %s [OPTION]\n",argv[0]);
 			fprintf (stderr, "\nOptional commands:\n");
 			fprintf (stderr, "  -i, --interval\t Time to wait before scaling again, in ms.\n" );
-			fprintf (stderr, "  -f, --freq\t\t Maximum frequency cpus can attain, in MHz.\n" );
+			fprintf (stderr, "  -f, --max-freq\t\t Maximum frequency cpus can attain, in MHz.\n" );
 			fprintf (stderr, "  -s, --cpu-step\t Scaling step, in MHz\n" );
 			fprintf (stderr, "  -a, --fan-step\t Fan scaling step.\n");
 			fprintf (stderr, "  -t, --temp\t\t Target temperature, in degrees.\n" );
