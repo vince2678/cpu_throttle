@@ -680,14 +680,14 @@ void parse_commmand_line(int argc, char *argv[]) {
 		{"reset-threshold",	required_argument,       0, 'u' },
 		{"minimum-fan-speed",	required_argument,       0, 'e' },
 		{"config",	required_argument,       0, 'o' },
-		{"cores",	no_argument,       0, 'c' },
+		{"cores",	required_argument,       0, 'c' },
 		{"help",	no_argument,       0, 'h' },
 		{"verbose",	no_argument,       0, 'v' },
 		{0,         0,                 0,  0 }
 	};
 
 	/* read in the command line args if anything was passed */
-	while ( (opt = getopt_long(argc, argv, "i:f:s:a:c:t:l:r:e:u:hv",
+	while ( (opt = getopt_long(argc, argv, "i:f:s:a:c:t:l:o:r:e:u:hv",
 					long_options, &optind)) != -1 ) {
 		switch (opt) {
 		    case 'o':
