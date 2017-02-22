@@ -159,10 +159,10 @@ int main(int argc, char *argv[])
 
 	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
 		// make sure an illegal target fan speed wasn't specified.
-		if (settings.fan_min_speed > settings.fan_hw_max_speed ) {
+		if (settings.fan_min_speed > settings.fan_hw_max_speed) {
 			settings.fan_min_speed = settings.fan_hw_max_speed;
 		}
-		else if (settings.fan_min_speed < settings.fan_hw_min_speed ) {
+		else if (settings.fan_min_speed < settings.fan_hw_min_speed) {
 			settings.fan_min_speed = settings.fan_hw_min_speed;
 		}
 
@@ -184,21 +184,19 @@ int main(int argc, char *argv[])
 	LOGI("Done reading/setting throttling parameters. "
 			"Starting throttling threads...\n", getpid());
 
+	/* use a fixed memory area for the values
+	 * needed by pthread */
+	int core[settings.num_cores];
+
 	/* start the worker threads */
-	int core;
 	for (i = 0; i < settings.num_cores; i++) {
 
 		LOGI("Starting thread for cpu%d...\n", getpid(), i);
 
-		/* don't scale the virtual cores */
-		if ((i % 2) && (settings.cpu_ht_available)) {
-			core = i+1;
-		}
-		else {
-			core = i;
-		}
+		core[i] = i;
 
-		rc = pthread_create(&(pthreads_arr[i]), NULL, cpu_worker, &core);
+		rc = pthread_create(&(pthreads_arr[i]),
+				NULL, cpu_worker, &(core[i]));
 		if (rc) {
 			LOGE("Failed to start thread for cpu%d...\n",
 				getpid(), core);

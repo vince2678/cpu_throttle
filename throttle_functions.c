@@ -290,7 +290,7 @@ void * cpu_worker(void* worker_num) {
 
 		if (curr_temp == -1) {
 			if (settings.verbose) {
-					LOGE("\t[cpu%d] Could not read"
+					LOGE("\t[cpu%d] Could not read "
 						"cpu temperature.\n",
 							getpid(), core);
 			}
@@ -618,7 +618,6 @@ void initialise_settings(void) {
 	settings.hysteresis_range = 0.1;
 	settings.hysteresis_reset_threshold = 100;
 	settings.fan_scaling_step = 2;
-	settings.cpu_ht_available = 0;
 	settings.num_cores = 1;
 
 	/* disable logging by default */
@@ -681,7 +680,6 @@ void parse_commmand_line(int argc, char *argv[]) {
 		{"reset-threshold",	required_argument,       0, 'u' },
 		{"minimum-fan-speed",	required_argument,       0, 'e' },
 		{"config",	required_argument,       0, 'o' },
-		{"threading",	no_argument,       0, 'm' },
 		{"cores",	no_argument,       0, 'c' },
 		{"help",	no_argument,       0, 'h' },
 		{"verbose",	no_argument,       0, 'v' },
@@ -689,7 +687,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 	};
 
 	/* read in the command line args if anything was passed */
-	while ( (opt = getopt_long(argc, argv, "i:f:s:a:c:t:l:r:e:u:hmv",
+	while ( (opt = getopt_long(argc, argv, "i:f:s:a:c:t:l:r:e:u:hv",
 					long_options, &optind)) != -1 ) {
 		switch (opt) {
 		    case 'o':
@@ -728,9 +726,6 @@ void parse_commmand_line(int argc, char *argv[]) {
 			strncpy(settings.log_path, optarg, MAX_BUF_SIZE);
 			settings.logging_enabled = 1;
 			break;
-		    case 'm':
-			settings.cpu_ht_available = 1;
-			break;
 		    case 'c':
 			settings.num_cores = atoi(optarg);
 			break;
@@ -744,7 +739,6 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "  -s, --cpu-step\tscaling step, in MHz\n" );
 			fprintf (stderr, "  -a, --fan-step\t Fan scaling step.\n");
 			fprintf (stderr, "  -t, --temp\tTarget temperature, in degrees.\n" );
-			fprintf (stderr, "  -m, --threading\tWhether threading is available or not. \n" );
 			fprintf (stderr, "  -e, --minimum-fan-speed\t Minimum speed fan can reach.\n");
 			fprintf (stderr, "  -r, --hysteresis\tHysteresis range "
 					"(< 51, in percent) as an integer.\n");
@@ -789,9 +783,6 @@ void handler(int signal) {
 
 	/* reset the cpu maximum frequency */
 	for (i = 0; i < settings.num_cores; i++) {
-
-		/* don't scale the virtual cores */
-		if ((i % 2) && (settings.cpu_ht_available)) continue;
 
 		LOGI("[cpu%d] Resetting maximum frequency...\n",
 				getpid(), i);

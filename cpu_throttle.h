@@ -116,11 +116,6 @@ struct throttle_settings {
 	 *  again in uS */
 	int polling_interval;
 
-	/* Boolean value input by user to determine
-	 * whether to treat some cores as vcoresand
-	 * scale them or not */
-	int cpu_ht_available;
-
 	/* the number of cores to scale. In most cases 1 is
 	 * sufficent since all cores are usually share
 	 *  frequency limits. */
