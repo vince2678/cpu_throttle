@@ -641,8 +641,8 @@ int write_configuration_file()
 	}
 
 	/* open the file */
-	if ((fd = open(config_file_path, O_CREAT|O_WRONLY,
-					S_IRUSR|S_IWUSR)) == -1) {
+	if ((fd = open(config_file_path, O_CREAT|O_TRUNC|O_WRONLY,
+				S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) == -1) {
 		perror("open");
 		LOGE("Failed to open config file %s for writing.\n",
 				getpid(), config_file_path);
