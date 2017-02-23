@@ -110,13 +110,13 @@ int decrease_max_freq(int core, int step)
 
 		/* log a message */
 		if (settings.verbose) {
-			LOGI("\t[cpu%d] Decreasing speed ceiling to %dKHz.\n",
-				getpid(), core, freq);
+			LOGI("\t[cpu%d] Decreasing speed ceiling to %dMHz.\n",
+				getpid(), core, KHZ_TO_MHZ(freq));
 		}
 	}
 	else if (settings.verbose) {
-		LOGI("\t[cpu%d] Decreasing speed ceiling by %dKHz.\n",
-			getpid(), core, step);
+		LOGI("\t[cpu%d] Decreasing speed ceiling by %dMHz.\n",
+			getpid(), core, KHZ_TO_MHZ(step));
 	}
 
 	/* write the string to the file and return */
@@ -144,13 +144,13 @@ int increase_max_freq(int core, int step)
 
 		/* log a message */
 		if (settings.verbose) {
-			LOGI("\t[cpu%d] Increasing speed ceiling to %dKHz.\n",
-				getpid(), core, freq);
+			LOGI("\t[cpu%d] Increasing speed ceiling to %dMHz.\n",
+				getpid(), core, KHZ_TO_MHZ(freq));
 		}
 	}
 	else if (settings.verbose) {
-		LOGI("\t[cpu%d] Increasing speed ceiling by %dKHz.\n",
-			getpid(), core, step);
+		LOGI("\t[cpu%d] Increasing speed ceiling by %dMHz.\n",
+			getpid(), core, KHZ_TO_MHZ(step));
 	}
 
 	/* write the string to the file and return */
@@ -284,8 +284,8 @@ void * cpu_worker(void* worker_num) {
 		curr_temp = read_integer(temperature_file_path);
 
 		if (settings.verbose) {
-			LOGI("\t[cpu%d] Current temperature is %dmC.\n",
-					getpid(), core, curr_temp);
+			LOGI("\t[cpu%d] Current temperature is %dC.\n",
+					getpid(), core, MC_TO_C(curr_temp));
 		}
 
 		if (curr_temp == -1) {
