@@ -72,12 +72,11 @@ struct throttle_settings {
 	int sysfs_fanctrl_hwmon_subnode;
 
 	/* temperature hysteresis variables 
-	 * hysteresis_range: input by user to determine
-	 * range in which to stop throttling cpu frequency.*/
-	float hysteresis_range;
+	 * hysteresis: input by user to determine range
+	 * in which to stop throttling cpu frequency.*/
+	int hysteresis;
 
 	/* values calculated from hysteresis range */
-	int hysteresis_deviation;
 	int hysteresis_upper_limit;
 	int hysteresis_lower_limit;
 

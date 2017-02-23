@@ -336,7 +336,7 @@ void * cpu_worker(void* worker_num) {
 			 * multiples of the hysteresis deviation we moved since the
 			 * last loop iteration */
 			int deviations = ceil(((float)temp_difference /
-						(float)settings.hysteresis_deviation));
+						(float)settings.hysteresis));
 
 			/* make sure to get the absolute value*/
 			deviations = abs(deviations);
@@ -454,7 +454,7 @@ void * fan_worker(void* worker_num) {
 			 * multiples of the hysteresis deviation we moved since the
 			 * last loop iteration */
 			int deviations = ceil(((float)temp_difference /
-						(float)settings.hysteresis_deviation));
+						(float)settings.hysteresis));
 
 			/* make sure to get the absolute value*/
 			deviations = abs(deviations);
@@ -617,7 +617,7 @@ void initialise_settings(void) {
 	settings.polling_interval = MS_TO_US(500);
 	settings.cpu_scaling_step = MHZ_TO_KHZ(100);
 	settings.cpu_target_temperature = C_TO_MC(55);
-	settings.hysteresis_range = 0.1;
+	settings.hysteresis = C_TO_MC(6);
 	settings.hysteresis_reset_threshold = 100;
 	settings.fan_scaling_step = 2;
 	settings.num_cores = 1;
@@ -711,8 +711,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			settings.fan_min_speed=atoi(optarg);
 			break;
 		    case 'r':
-			settings.hysteresis_range=
-				(float)(strtol(optarg, NULL, 10) / 100.0);
+			settings.hysteresis=C_TO_MC(atoi(optarg));
 			break;
 		    case 'i':
 			settings.polling_interval=MS_TO_US(atoi(optarg));
@@ -747,8 +746,7 @@ void parse_commmand_line(int argc, char *argv[]) {
 			fprintf (stderr, "  -a, --fan-step\t Fan scaling step.\n");
 			fprintf (stderr, "  -t, --temp\t\t Target temperature, in degrees.\n" );
 			fprintf (stderr, "  -e, --minimum-fan-speed\t Minimum speed fan can reach.\n");
-			fprintf (stderr, "  -r, --hysteresis\t Hysteresis range "
-					"(< 51, in percent) as an integer.\n");
+			fprintf (stderr, "  -r, --hysteresis\t Hysteresis deviation range in degrees.\n");
 			fprintf (stderr, "  -u, --reset-threshold\t Number of intervals spent consecutively\n"
 					"\t\t\t in hysteresis before fan speed and cpu clock are reset.\n");
 			fprintf (stderr, "  -o, --config\t\t Path to read/write binary config.\n" );
@@ -766,12 +764,10 @@ void parse_commmand_line(int argc, char *argv[]) {
 void validate_settings(void) {
 
 	/* calculate the hysteresis range */
-	settings.hysteresis_deviation =
-		(((float) settings.cpu_target_temperature) * settings.hysteresis_range);
 	settings.hysteresis_upper_limit =
-		settings.cpu_target_temperature + settings.hysteresis_deviation;
+		settings.cpu_target_temperature + settings.hysteresis;
 	settings.hysteresis_lower_limit =
-		settings.cpu_target_temperature - settings.hysteresis_deviation;
+		settings.cpu_target_temperature - settings.hysteresis;
 
 	// make sure an illegal target frequency wasn't specified.
 	if (settings.cpu_max_freq > settings.cpuinfo_max_freq ) {

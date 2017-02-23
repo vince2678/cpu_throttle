@@ -116,27 +116,22 @@ int main(int argc, char *argv[])
 	LOGI("\tSet cpu scaling step to %dMHz.\n",
 			getpid(), KHZ_TO_MHZ(settings.cpu_scaling_step));
 
-	LOGI("\tSet cpu target temperature to %dmC.\n",
-			getpid(), settings.cpu_target_temperature);
-
-	LOGI("\tSet cpu hysteresis range to %d percent.\n",
-			getpid(), (int)(settings.hysteresis_range*100));
+	LOGI("\tSet cpu target temperature to %dC.\n",
+			getpid(), MC_TO_C(settings.cpu_target_temperature));
 
 	LOGI("\tSet cpus to throttle to %d.\n", getpid(), settings.num_cores);
 
 	LOGI("\n",getpid());
 
+	LOGI("\tSet hysteresis to %dC."
+			" Temp range: %dC <= %dC <= %dC \n",
+			getpid(), MC_TO_C(settings.hysteresis),
+			MC_TO_C(settings.hysteresis_lower_limit),
+			MC_TO_C(settings.cpu_target_temperature),
+			MC_TO_C(settings.hysteresis_upper_limit));
+
 	LOGI("\tSet hysteresis threshold to %d intervals.\n",
 			getpid(), settings.hysteresis_reset_threshold);
-
-	LOGI("\tCalculated temperature hysteresis deviation of %dmC.\n",
-			getpid(), settings.hysteresis_deviation);
-
-	LOGI("\tCalculated temperature hysteresis lower limit of %dmC.\n",
-			getpid(), settings.hysteresis_lower_limit);
-
-	LOGI("\tCalculated temperature hysteresis upper limit of %dmC.\n",
-			getpid(), settings.hysteresis_upper_limit);
 
 	LOGI("\n",getpid());
 
