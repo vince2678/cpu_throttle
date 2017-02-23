@@ -5,7 +5,7 @@ SCALING_DIR = '"/sys/devices/system/cpu/cpu%d/cpufreq/%s"'
 
 NAME = cpu_throttle
 BINARY_DIR = /usr/bin
-SYSTEMD_UNIT_DIR = /etc/systemd/system
+SYSTEMD_UNIT_DIR = /etc/systemd/system/multi-user.target.wants
 
 CFLAGS = -Wall -Werror -g
 EXTRA_LINKS = -lm -pthread
