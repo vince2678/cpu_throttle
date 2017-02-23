@@ -301,17 +301,25 @@ void * cpu_worker(void* worker_num) {
 		if ((curr_temp >= settings.hysteresis_lower_limit)
 				&& (curr_temp <= settings.hysteresis_upper_limit)) {
 
-			/* update the hysteresis counter */
-			intervals_in_hysteresis += 1;
+			/*subcase 1: If temp is between lower and target temp */
+			if (curr_temp <= settings.cpu_target_temperature) {
+				/* adjust the processor speed by a quarter step */
+				increase_max_freq(core, ceil((float)settings.cpu_scaling_step/4.0));
+			}
+			/*subcase 2: If temp is between target temp and upper range */
+			else {
+				/* update the hysteresis counter */
+				intervals_in_hysteresis += 1;
 
-			/* check if we've reached the reset threshold */
-			if (intervals_in_hysteresis == settings.hysteresis_reset_threshold) {
+				/* check if we've reached the reset threshold */
+				if (intervals_in_hysteresis == settings.hysteresis_reset_threshold) {
 
-				/* reset the hysteresis counter */
-				intervals_in_hysteresis = 0;
+					/* reset the hysteresis counter */
+					intervals_in_hysteresis = 0;
 
-				/* reset the speed to the settings.cpu_max_freq */
-				increase_max_freq(core, settings.cpuinfo_max_freq);
+					/* reset the speed to the settings.cpu_max_freq */
+					increase_max_freq(core, settings.cpuinfo_max_freq);
+				}
 			}
 		}
 		/*case 2: temp is below the (lower) hysteresis range of target */
@@ -320,8 +328,8 @@ void * cpu_worker(void* worker_num) {
 			/* reset hysteresis counter */
 			intervals_in_hysteresis = 0;
 
-			/* adjust the processor speed by half a step */
-			increase_max_freq(core, (settings.cpu_scaling_step/2));
+			/* increase the processor speed by half a step */
+			increase_max_freq(core, ceil((float)settings.cpu_scaling_step/2.0));
 		}
 		/*case 3: temp is beyond the (upper) hysteresis range of target */
 		else {
@@ -348,16 +356,16 @@ void * cpu_worker(void* worker_num) {
 			}
 			/* if our current temp is lower than the previous one */
 			else if (temp_difference > 0) {
-				/* increase the processor speed by half a step */
-				decrease_max_freq(core, (settings.cpu_scaling_step/2));
+				/* decrease the processor speed by half a step */
+				decrease_max_freq(core, ceil((float)settings.cpu_scaling_step/2.0));
 			}
 			/* if our current temp is worse than the previous one */
 			else {
 				/* decrease the processor speed by deviations steps */
 				decrease_max_freq(core, settings.cpu_scaling_step * deviations);
 			}
+			prev_temp = curr_temp;
 		}
-		prev_temp = curr_temp;
 	}
 	return NULL;
 }
@@ -374,9 +382,6 @@ void * fan_worker(void* worker_num) {
 	char filename_buf[MIN_BUF_SIZE];
 
 	int curr_temp = 0, prev_temp = 0;
-
-	/* count the number of intervals spent in hysteresis */
-	int intervals_in_hysteresis = 0;
 
 	/* Format the temperature reading file. We add two because the
 	 * hwmon files are 1-indexed and the first one is that of the whole die. */
@@ -419,33 +424,24 @@ void * fan_worker(void* worker_num) {
 		if ((curr_temp >= settings.hysteresis_lower_limit)
 				&& (curr_temp <= settings.hysteresis_upper_limit)) {
 
-			/* update the hysteresis counter */
-			intervals_in_hysteresis += 1;
-
-			/* check if we've reached the reset threshold */
-			if (intervals_in_hysteresis == settings.hysteresis_reset_threshold) {
-
-				/* reset the hysteresis counter */
-				intervals_in_hysteresis = 0;
-
-				/* reset the fan speed */
-				reset_fan_speed();
+			/*subcase 1: If temp is between lower and target temp */
+			if (curr_temp <= settings.cpu_target_temperature) {
+				/* decrease the fan speed by a quarter step */
+				decrease_fan_speed(ceil((float)settings.fan_scaling_step/4.0));
+			}
+			/*subcase 2: If temp is between target temp and upper range */
+			else {
+				/* increase the fan speed by a quarter step */
+				increase_fan_speed(ceil((float)settings.fan_scaling_step/4.0));
 			}
 		}
 		/*case 2: temp is below the (lower) hysteresis range of target */
 		else if (curr_temp < settings.hysteresis_lower_limit) {
-
-			/* reset hysteresis counter */
-			intervals_in_hysteresis = 0;
-
 			/* decrease the fan speed */
-			decrease_fan_speed((settings.fan_scaling_step/2));
+			decrease_fan_speed(ceil((float)settings.fan_scaling_step/2.0));
 		}
 		/*case 3: temp is beyond the (upper) hysteresis range of target */
 		else {
-			/* reset hysteresis counter */
-			intervals_in_hysteresis = 0;
-
 			/* check if the temperature has dropped significantly
 			 * since the last time we read the temps .*/
 			int temp_difference = prev_temp - curr_temp;
@@ -466,16 +462,16 @@ void * fan_worker(void* worker_num) {
 			}
 			/* if our current temp is lower than the previous one */
 			else if (temp_difference > 0) {
-				/* decrease the fan speed by half a step */
-				increase_fan_speed((settings.fan_scaling_step/2));
+				/* increase the fan speed by half a step */
+				increase_fan_speed(ceil((float)settings.fan_scaling_step/2.0));
 			}
 			/* if our current temp is worse than the previous one */
 			else {
 				/* increase the fan speed by deviations steps */
 				increase_fan_speed(settings.fan_scaling_step * deviations);
 			}
+			prev_temp = curr_temp;
 		}
-		prev_temp = curr_temp;
 	}
 	return NULL;
 }
