@@ -340,19 +340,10 @@ void * cpu_worker(void* worker_num) {
 			 * since the last time we read the temps .*/
 			int temp_difference = prev_temp - curr_temp;
 
-			/* we essentially want to multiply the steps by how many
-			 * multiples of the hysteresis deviation we moved since the
-			 * last loop iteration */
-			int deviations = ceil(((float)temp_difference /
-						(float)settings.hysteresis));
-
-			/* make sure to get the absolute value*/
-			deviations = abs(deviations);
-
-			/* if our temperature didn't change, move it a step */
+			/* if our temperature didn't change, decrease the core max frequency */
 			if (temp_difference == 0) {
-				/* adjust the processor speed by a step */
-				decrease_max_freq(core, (settings.cpu_scaling_step));
+				/* adjust the processor speed by a quarter step */
+				decrease_max_freq(core, ceil((float)settings.cpu_scaling_step/4.0));
 			}
 			/* if our current temp is lower than the previous one */
 			else if (temp_difference > 0) {
@@ -361,8 +352,8 @@ void * cpu_worker(void* worker_num) {
 			}
 			/* if our current temp is worse than the previous one */
 			else {
-				/* decrease the processor speed by deviations steps */
-				decrease_max_freq(core, settings.cpu_scaling_step * deviations);
+				/* decrease the processor speed by a step */
+				decrease_max_freq(core, settings.cpu_scaling_step);
 			}
 			prev_temp = curr_temp;
 		}
@@ -437,7 +428,7 @@ void * fan_worker(void* worker_num) {
 		}
 		/*case 2: temp is below the (lower) hysteresis range of target */
 		else if (curr_temp < settings.hysteresis_lower_limit) {
-			/* decrease the fan speed */
+			/* decrease the fan speed by half a step */
 			decrease_fan_speed(ceil((float)settings.fan_scaling_step/2.0));
 		}
 		/*case 3: temp is beyond the (upper) hysteresis range of target */
@@ -446,19 +437,10 @@ void * fan_worker(void* worker_num) {
 			 * since the last time we read the temps .*/
 			int temp_difference = prev_temp - curr_temp;
 
-			/* we essentially want to multiply the steps by how many
-			 * multiples of the hysteresis deviation we moved since the
-			 * last loop iteration */
-			int deviations = ceil(((float)temp_difference /
-						(float)settings.hysteresis));
-
-			/* make sure to get the absolute value*/
-			deviations = abs(deviations);
-
 			/* if our temperature didn't change, move it a step */
 			if (temp_difference == 0) {
-				/* adjust the fan speed by a step */
-				increase_fan_speed((settings.fan_scaling_step));
+				/* inrease the fan speed by a quarter step */
+				increase_fan_speed(ceil((float)settings.fan_scaling_step/4.0));
 			}
 			/* if our current temp is lower than the previous one */
 			else if (temp_difference > 0) {
@@ -467,8 +449,8 @@ void * fan_worker(void* worker_num) {
 			}
 			/* if our current temp is worse than the previous one */
 			else {
-				/* increase the fan speed by deviations steps */
-				increase_fan_speed(settings.fan_scaling_step * deviations);
+				/* increase the fan speed by a step */
+				increase_fan_speed(settings.fan_scaling_step);
 			}
 			prev_temp = curr_temp;
 		}
