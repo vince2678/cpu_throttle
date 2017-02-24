@@ -87,22 +87,22 @@ int main(int argc, char *argv[])
 	LOGI("\n",getpid());
 
 	LOGI("\tFound cpu core temp hwmon node at %d.\n",
-			getpid(), settings.sysfs_coretemp_hwmon_node);
+			getpid(), sysfs_coretemp_hwmon_node);
 
 	/* check if the sysfs fan control node exist */
-	if (settings.sysfs_fanctrl_hwmon_subnode == -1) {
+	if (sysfs_fanctrl_hwmon_subnode == -1) {
 		LOGW("\tCould not find fan control hwmon directory."
 				" Working without it.\n", getpid());
 	}
 	else {
 		LOGI("\tFound fan-control sysfs interface at node %d.\n",
-				getpid(), settings.sysfs_fanctrl_hwmon_subnode);
+				getpid(), sysfs_fanctrl_hwmon_subnode);
 	}
 
 	LOGI("\tSuccessfully read cpu scaling limits.\n"
 		"\t\t\tmax_freq:%dMHz min_freq:%dMHz\n", getpid(),
-			KHZ_TO_MHZ(settings.cpuinfo_max_freq),
-			KHZ_TO_MHZ(settings.cpuinfo_min_freq));
+			KHZ_TO_MHZ(cpuinfo_max_freq),
+			KHZ_TO_MHZ(cpuinfo_min_freq));
 
 	/* print some information about the values we set */
 	LOGI("\n",getpid());
@@ -126,16 +126,16 @@ int main(int argc, char *argv[])
 	LOGI("\tSet hysteresis to %dC."
 			" Temp range: %dC <= %dC <= %dC \n",
 			getpid(), MC_TO_C(settings.hysteresis),
-			MC_TO_C(settings.hysteresis_lower_limit),
+			MC_TO_C(hysteresis_lower_limit),
 			MC_TO_C(settings.cpu_target_temperature),
-			MC_TO_C(settings.hysteresis_upper_limit));
+			MC_TO_C(hysteresis_upper_limit));
 
 	LOGI("\tSet hysteresis threshold to %d intervals.\n",
 			getpid(), settings.hysteresis_reset_threshold);
 
 	LOGI("\n",getpid());
 
-	if (settings.sysfs_fanctrl_hwmon_subnode != -1) {
+	if (sysfs_fanctrl_hwmon_subnode != -1) {
 
 		LOGI("\n",getpid());
 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 
 		LOGI("\tSuccessfully read fan speed limits.\n"
 			"\t\tspeed_max: %d\t speed_min: %d\n", getpid(),
-				settings.fan_hw_max_speed, settings.fan_hw_min_speed);
+				fan_hw_max_speed, fan_hw_min_speed);
 		LOGI("\n",getpid());
 	}
 

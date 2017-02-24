@@ -63,34 +63,39 @@ struct throttle_settings settings;
 char * config_file_path;
 int write_config;
 
+/* hwmon sysfs interface info */
+int sysfs_coretemp_hwmon_node;
+int sysfs_fanctrl_hwmon_node;
+int sysfs_fanctrl_hwmon_subnode;
+
+/* values calculated from hysteresis range */
+int hysteresis_upper_limit;
+int hysteresis_lower_limit;
+
+/* fan speed information read from sysfs */
+int fan_hw_min_speed;
+int fan_hw_max_speed;
+
+/* CPU scaling frequency information read from sysfs.
+ * These values are in KHz. */
+int cpuinfo_min_freq;
+int cpuinfo_max_freq;
+
 struct throttle_settings {
 	/* logging */
 	char log_path[MAX_BUF_SIZE];
 	int logging_enabled;
 	int verbose;
 
-	/* hwmon sysfs interface info */
-	int sysfs_coretemp_hwmon_node;
-	int sysfs_fanctrl_hwmon_node;
-	int sysfs_fanctrl_hwmon_subnode;
-
 	/* temperature hysteresis variables 
 	 * hysteresis: input by user to determine range
 	 * in which to stop throttling cpu frequency.*/
 	int hysteresis;
 
-	/* values calculated from hysteresis range */
-	int hysteresis_upper_limit;
-	int hysteresis_lower_limit;
-
 	/* this represents the number of consecutive intervals
 	 * in hysteresis that can pass before we reset frequency
 	 * and fan speed to hardware defaults. */
 	int hysteresis_reset_threshold;
-
-	/* fan speed information read from sysfs */
-	int fan_hw_min_speed;
-	int fan_hw_max_speed;
 
 	/* actual minimum speed to be used when adjusting
 	 * temperature. This can be user defined. */
@@ -99,11 +104,6 @@ struct throttle_settings {
 	/* Scaling step for the fan. Amount by which we
 	 * scale after every interval */
 	int fan_scaling_step;
-
-	/* CPU scaling frequency information read from sysfs.
-	 * These values are in KHz. */
-	int cpuinfo_min_freq;
-	int cpuinfo_max_freq;
 
 	/* cpu target temperature in mC */ 
 	int cpu_target_temperature;
