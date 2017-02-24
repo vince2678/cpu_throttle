@@ -650,90 +650,90 @@ void parse_commmand_line(int argc, char *argv[]) {
 	int optind = 0;
 
 	static struct option long_options[] = {
-		/* *name ,  has_arg,           *flag,  val */
-		{"interval",	required_argument,       0, 'i' },
-		{"max-freq",	required_argument,       0, 'f' },
-		{"cpu-step",	required_argument,       0, 's' },
-		{"fan-step",	required_argument,       0, 'a' },
-		{"temp",	required_argument,       0, 't' },
-		{"log",	required_argument,       0, 'l' },
-		{"hysteresis",	required_argument,       0, 'r' },
-		{"reset-threshold",	required_argument,       0, 'u' },
-		{"minimum-fan-speed",	required_argument,       0, 'e' },
-		{"config",	required_argument,       0, 'o' },
-		{"cores",	required_argument,       0, 'c' },
-		{"write-config",	no_argument,       0, 'w' },
-		{"help",	no_argument,       0, 'h' },
-		{"verbose",	no_argument,       0, 'v' },
-		{0,         0,                 0,  0 }
+		/* *name ,  has_arg,		   *flag,  val */
+		{"interval",	required_argument,	   0, 'i' },
+		{"max-freq",	required_argument,	   0, 'f' },
+		{"cpu-step",	required_argument,	   0, 's' },
+		{"fan-step",	required_argument,	   0, 'a' },
+		{"temp",	required_argument,	   0, 't' },
+		{"log",	required_argument,	   0, 'l' },
+		{"hysteresis",	required_argument,	   0, 'r' },
+		{"reset-threshold",	required_argument,	   0, 'u' },
+		{"minimum-fan-speed",	required_argument,	   0, 'e' },
+		{"config",	required_argument,	   0, 'o' },
+		{"cores",	required_argument,	   0, 'c' },
+		{"write-config",	no_argument,	   0, 'w' },
+		{"help",	no_argument,	   0, 'h' },
+		{"verbose",	no_argument,	   0, 'v' },
+		{0,		 0,				 0,  0 }
 	};
 
 	/* read in the command line args if anything was passed */
 	while ( (opt = getopt_long(argc, argv, "i:f:s:a:c:t:l:o:r:e:u:hvw",
 					long_options, &optind)) != -1 ) {
 		switch (opt) {
-		    case 'o':
-			config_file_path = malloc(MAX_BUF_SIZE);
-			strncpy(config_file_path, optarg, MAX_BUF_SIZE);
-			break;
-		    case 'w':
-			write_config=1;
-			break;
-		    case 'u':
-			settings.hysteresis_reset_threshold=atoi(optarg);
-			break;
-		    case 'a':
-			settings.fan_scaling_step=atoi(optarg);
-			break;
-		    case 'e':
-			settings.fan_min_speed=atoi(optarg);
-			break;
-		    case 'r':
-			settings.hysteresis=C_TO_MC(atoi(optarg));
-			break;
-		    case 'i':
-			settings.polling_interval=MS_TO_US(atoi(optarg));
-			break;
-		    case 'f':
-			settings.cpu_max_freq=MHZ_TO_KHZ(atoi(optarg));
-			break;
-		    case 's':
-			settings.cpu_scaling_step=MHZ_TO_KHZ(atoi(optarg));
-			break;
-		    case 't':
-			settings.cpu_target_temperature=C_TO_MC(atoi(optarg));
-			break;
-		    case 'v':
-			settings.verbose = 1;
-			break;
-		    case 'l':
-			strncpy(settings.log_path, optarg, MAX_BUF_SIZE);
-			settings.logging_enabled = 1;
-			break;
-		    case 'c':
-			settings.num_cores = atoi(optarg);
-			break;
-		    case 'h':
-		    case '?': // case in which the argument is not recognised.
-		    default: 
-			fprintf (stderr, "Usage: %s [OPTION]\n",argv[0]);
-			fprintf (stderr, "\nOptional commands:\n");
-			fprintf (stderr, "  -i, --interval\t Time to wait before scaling again, in ms.\n" );
-			fprintf (stderr, "  -f, --max-freq\t\t Maximum frequency cpus can attain, in MHz.\n" );
-			fprintf (stderr, "  -s, --cpu-step\t Scaling step, in MHz\n" );
-			fprintf (stderr, "  -a, --fan-step\t Fan scaling step.\n");
-			fprintf (stderr, "  -t, --temp\t\t Target temperature, in degrees.\n" );
-			fprintf (stderr, "  -e, --minimum-fan-speed\t Minimum speed fan can reach.\n");
-			fprintf (stderr, "  -r, --hysteresis\t Hysteresis deviation range in degrees.\n");
-			fprintf (stderr, "  -u, --reset-threshold\t Number of intervals spent consecutively\n"
-					"\t\t\t in hysteresis before fan speed and cpu clock are reset.\n");
-			fprintf (stderr, "  -o, --config\t\t Path to read/write binary config.\n" );
-			fprintf (stderr, "  -w, --write-config\t\t Just save the new configuration and exit.\n" );
-			fprintf (stderr, "  -c, --cores\t\t Number of (physical) cores on the system.\n" );
-			fprintf (stderr, "  -l, --log\t\t Path to log file.\n" );
-			fprintf (stderr, "  -v, --verbose\t\t Print detailed throttling information.\n");
-			fprintf (stderr, "  -h, --help\t\t Print this message.\n");
-			exit (EXIT_FAILURE);
+			case 'o':
+				config_file_path = malloc(MAX_BUF_SIZE);
+				strncpy(config_file_path, optarg, MAX_BUF_SIZE);
+				break;
+			case 'w':
+				write_config=1;
+				break;
+			case 'u':
+				settings.hysteresis_reset_threshold=atoi(optarg);
+				break;
+			case 'a':
+				settings.fan_scaling_step=atoi(optarg);
+				break;
+			case 'e':
+				settings.fan_min_speed=atoi(optarg);
+				break;
+			case 'r':
+				settings.hysteresis=C_TO_MC(atoi(optarg));
+				break;
+			case 'i':
+				settings.polling_interval=MS_TO_US(atoi(optarg));
+				break;
+			case 'f':
+				settings.cpu_max_freq=MHZ_TO_KHZ(atoi(optarg));
+				break;
+			case 's':
+				settings.cpu_scaling_step=MHZ_TO_KHZ(atoi(optarg));
+				break;
+			case 't':
+				settings.cpu_target_temperature=C_TO_MC(atoi(optarg));
+				break;
+			case 'v':
+				settings.verbose = 1;
+				break;
+			case 'l':
+				strncpy(settings.log_path, optarg, MAX_BUF_SIZE);
+				settings.logging_enabled = 1;
+				break;
+			case 'c':
+				settings.num_cores = atoi(optarg);
+				break;
+			case 'h':
+			case '?': // case in which the argument is not recognised.
+			default:
+				fprintf (stderr, "Usage: %s [OPTION]\n",argv[0]);
+				fprintf (stderr, "\nOptional commands:\n");
+				fprintf (stderr, "  -i, --interval\t Time to wait before scaling again, in ms.\n" );
+				fprintf (stderr, "  -f, --max-freq\t\t Maximum frequency cpus can attain, in MHz.\n" );
+				fprintf (stderr, "  -s, --cpu-step\t Scaling step, in MHz\n" );
+				fprintf (stderr, "  -a, --fan-step\t Fan scaling step.\n");
+				fprintf (stderr, "  -t, --temp\t\t Target temperature, in degrees.\n" );
+				fprintf (stderr, "  -e, --minimum-fan-speed\t Minimum speed fan can reach.\n");
+				fprintf (stderr, "  -r, --hysteresis\t Hysteresis deviation range in degrees.\n");
+				fprintf (stderr, "  -u, --reset-threshold\t Number of intervals spent consecutively\n"
+						"\t\t\t in hysteresis before fan speed and cpu clock are reset.\n");
+				fprintf (stderr, "  -o, --config\t\t Path to read/write binary config.\n" );
+				fprintf (stderr, "  -w, --write-config\t\t Just save the new configuration and exit.\n" );
+				fprintf (stderr, "  -c, --cores\t\t Number of (physical) cores on the system.\n" );
+				fprintf (stderr, "  -l, --log\t\t Path to log file.\n" );
+				fprintf (stderr, "  -v, --verbose\t\t Print detailed throttling information.\n");
+				fprintf (stderr, "  -h, --help\t\t Print this message.\n");
+				exit (EXIT_FAILURE);
 		}
 	}
 }
