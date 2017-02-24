@@ -53,6 +53,9 @@ struct throttle_settings;
 /*==== GLOBALS ===== */
 FILE * log_file;
 
+/* termination signal */
+int termination_signaled;
+
 /* struct to store runtime settings */
 struct throttle_settings settings;
 

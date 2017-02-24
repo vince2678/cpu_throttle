@@ -357,6 +357,8 @@ void * cpu_worker(void* worker_num) {
 			}
 			prev_temp = curr_temp;
 		}
+		/* break out of the loop if we are signaled to terminate */
+		if (termination_signaled) break;
 	}
 	return NULL;
 }
@@ -454,6 +456,8 @@ void * fan_worker(void* worker_num) {
 			}
 			prev_temp = curr_temp;
 		}
+		/* break out of the loop if we are signaled to terminate */
+		if (termination_signaled) break;
 	}
 	return NULL;
 }
@@ -516,6 +520,9 @@ void initialise_settings(void) {
 	log_file = NULL;
 	config_file_path = NULL;
 	write_config = 0;
+
+	/* signal the threads to stop */
+	termination_signaled = 0;
 
 	// initialise the hwmon global variables
 	settings.sysfs_coretemp_hwmon_node = -1;
@@ -815,7 +822,8 @@ void handler(int signal) {
 
 			reset_max_freq(i);
 		}
-		exit(EXIT_SUCCESS);
+		/* signal the threads to stop */
+		termination_signaled = 1;
 	}
 	else if (signal == SIGHUP) {
 		LOGI("Reloading configuration...\n", getpid());

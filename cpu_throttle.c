@@ -189,4 +189,5 @@ int main(int argc, char *argv[])
 			LOGE("[worker%d] Failed to join thread.\n", getpid(), i);
 		}
 	}
+	return 0;
 }
