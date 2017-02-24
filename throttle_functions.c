@@ -801,7 +801,13 @@ void handler(int signal) {
 	int i;
 
 	if ((signal == SIGTERM) || (signal == SIGINT)) {
-		LOGI("Termination signal sent. Winding up...\n", getpid());
+		LOGI("Termination signal received. Winding up...\n", getpid());
+
+		/* signal the threads to stop */
+		termination_signaled = 1;
+
+		/* give them time to come to a halt */
+		usleep(settings.polling_interval);
 
 		if (sysfs_fanctrl_hwmon_subnode != -1) {
 
@@ -827,8 +833,6 @@ void handler(int signal) {
 
 			reset_max_freq(i);
 		}
-		/* signal the threads to stop */
-		termination_signaled = 1;
 	}
 	else if (signal == SIGHUP) {
 		LOGI("Reloading configuration...\n", getpid());
