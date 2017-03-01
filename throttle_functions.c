@@ -110,7 +110,7 @@ int decrease_max_freq(int core, int step)
 
 		/* log a message */
 		if (settings.verbose) {
-			LOGI("\t[cpu%d] Decreasing speed ceiling to %dMHz.\n",
+			LOGI("\t[cpu%d] Setting speed ceiling to %dMHz.\n",
 				getpid(), core, KHZ_TO_MHZ(freq));
 		}
 	}
@@ -144,7 +144,7 @@ int increase_max_freq(int core, int step)
 
 		/* log a message */
 		if (settings.verbose) {
-			LOGI("\t[cpu%d] Increasing speed ceiling to %dMHz.\n",
+			LOGI("\t[cpu%d] Setting speed ceiling to %dMHz.\n",
 				getpid(), core, KHZ_TO_MHZ(freq));
 		}
 	}
@@ -207,7 +207,7 @@ int increase_fan_speed(int step)
 		fan_speed = fan_hw_max_speed;
 
 		if (settings.verbose) {
-			LOGI("\t[fan] Increasing fan speed to %d.\n",
+			LOGI("\t[fan] Setting fan speed to %d.\n",
 				getpid(), fan_speed);
 		}
 	}
@@ -243,7 +243,7 @@ int decrease_fan_speed(int step)
 		fan_speed = settings.fan_min_speed;
 
 		if (settings.verbose) {
-			LOGI("\t[fan] Decreasing fan speed to %d.\n",
+			LOGI("\t[fan] Setting fan speed to %d.\n",
 				getpid(), fan_speed);
 		}
 	}
@@ -283,11 +283,6 @@ void * cpu_worker(void* worker_num) {
 		/* read the current temp of the core */
 		curr_temp = read_integer(temperature_file_path);
 
-		if (settings.verbose) {
-			LOGI("\t[cpu%d] Current temperature is %dC.\n",
-					getpid(), core, MC_TO_C(curr_temp));
-		}
-
 		if (curr_temp == -1) {
 			if (settings.verbose) {
 					LOGE("\t[cpu%d] Could not read "
@@ -300,6 +295,11 @@ void * cpu_worker(void* worker_num) {
 		/*case 1: temp is in hysteresis range of target */
 		if ((curr_temp >= hysteresis_lower_limit)
 				&& (curr_temp <= hysteresis_upper_limit)) {
+
+			if (settings.verbose) {
+				LOGI("\t[cpu%d] Current temperature is %dC.\n",
+						getpid(), core, MC_TO_C(curr_temp));
+			}
 
 			/*subcase 1: If temp is between lower and target temp */
 			if (curr_temp <= settings.cpu_target_temperature) {
